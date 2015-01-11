@@ -1,11 +1,12 @@
 #ccflags-y += -I$(src)/core/include
+include $(srctree)/drivers/misc/mediatek/Makefile.custom
 ccflags-y += -I$(src)/linux/include \
 						 -I$(src)/linux/pri/include \
 						 -I$(src)/core/include \
 						 -I$(src)/include \
 						 -I$(src)/ \
 						 -I$(src)/../../btif/inc \
-						 -I$(src)/../../common_detect
+						 -I$(src)/../../common_detect/$(MTK_PLATFORM)
 
 #CONFIG_MTK_COMBO=y
 EXT_FLAG=_soc

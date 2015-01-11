@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: @(#) gl_p2p.c@@
 */
 
@@ -941,6 +927,11 @@ const struct iw_handler_def mtk_p2p_wext_handler_def = {
 #endif
 };
 
+#ifdef CONFIG_PM
+static const struct wiphy_wowlan_support p2p_wowlan_support = {
+		.flags = WIPHY_WOWLAN_DISCONNECT,
+	};
+#endif
 /*******************************************************************************
 *                                 M A C R O S
 ********************************************************************************
@@ -1556,13 +1547,21 @@ glRegisterP2P(
     prGlueInfo->prP2PInfo->wdev.wiphy->mgmt_stypes = mtk_cfg80211_default_mgmt_stypes;
     prGlueInfo->prP2PInfo->wdev.wiphy->max_remain_on_channel_duration = 5000;
     prGlueInfo->prP2PInfo->wdev.wiphy->n_cipher_suites = 5;
-	prGlueInfo->prP2PInfo->wdev.wiphy->cipher_suites = (const u32*)cipher_suites;
-	prGlueInfo->prP2PInfo->wdev.wiphy->flags = WIPHY_FLAG_CUSTOM_REGULATORY | WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+    prGlueInfo->prP2PInfo->wdev.wiphy->cipher_suites = (const u32*)cipher_suites;
+    prGlueInfo->prP2PInfo->wdev.wiphy->flags = WIPHY_FLAG_CUSTOM_REGULATORY | 
+                                               WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL |
+                                               WIPHY_FLAG_HAVE_AP_SME;
+    prGlueInfo->prP2PInfo->wdev.wiphy->ap_sme_capa = 1;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
     prGlueInfo->prP2PInfo->wdev.wiphy->max_scan_ssids = MAX_SCAN_LIST_NUM;
     prGlueInfo->prP2PInfo->wdev.wiphy->max_scan_ie_len = MAX_SCAN_IE_LEN;
     prGlueInfo->prP2PInfo->wdev.wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
+#endif
+
+#ifdef CONFIG_PM
+	kalMemCopy(&(prGlueInfo->prP2PInfo->wdev.wiphy->wowlan),
+		&p2p_wowlan_support, sizeof(struct wiphy_wowlan_support));
 #endif
 
 #if 0

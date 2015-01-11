@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include "hif_sdio.h"
 #include "hif_sdio_chrdev.h"
 
@@ -140,7 +126,7 @@ static int hif_sdio_proc(void * pvData)
     while (!kthread_should_stop()) 
     {
         //HIF_SDIO_INFO_FUNC("enter sleep.\n");
-		osal_msleep(10000);
+		osal_sleep_ms(10000);
 		//HIF_SDIO_INFO_FUNC("wakeup\n");		
     }
     HIF_SDIO_INFO_FUNC("hifsdiod exit.\n"); 
@@ -283,7 +269,7 @@ INT32 mtk_wcn_hif_sdio_query_chipid(INT32 waitFlag)
 	{
 	    if (0 <= hif_sdio_is_chipid_valid(gComboChipId))
 			break;
-	    osal_msleep(timeSlotMs);
+	    osal_sleep_ms(timeSlotMs);
 	    counter++;
 	}
 	

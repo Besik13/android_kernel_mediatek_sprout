@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/assoc.c#3 $
 */
 
@@ -1603,6 +1589,7 @@ assocProcessRxAssocReqFrame (
             break;
         case ELEM_ID_HT_CAP:
             prStaRec->ucPhyTypeSet |= PHY_TYPE_BIT_HT;
+			kalMemCopy(&prStaRec->u2HtCapInfo, &(HT_CAP_IE(pucIE)->u2HtCapInfo), 2);
             break;
         case ELEM_ID_RSN:
             #if CFG_ENABLE_WIFI_DIRECT && CFG_ENABLE_HOTSPOT_PRIVACY_CHECK

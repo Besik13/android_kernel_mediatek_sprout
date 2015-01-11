@@ -1,16 +1,4 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
+
 
 #include "osal_typedef.h"
 #include "osal.h"
@@ -123,7 +111,7 @@ static INT32 _stp_btm_put_dump_to_nl(void)
                             break;
                        }                       
                        STP_BTM_WARN_FUNC("**dump send fails, and retry again.**\n");
-                       osal_msleep(3);
+                       osal_sleep_ms(3);
                        rc = stp_dbg_nl_send((PCHAR)&tmp, 2);
                        if(!rc){
                           STP_BTM_WARN_FUNC("****retry again ok!**\n");
@@ -139,7 +127,7 @@ static INT32 _stp_btm_put_dump_to_nl(void)
         }else
         {
             retry ++;
-            osal_msleep(100);
+            osal_sleep_ms(100);
         }
     }while((remain > 0) || (retry < 2));
 
@@ -180,11 +168,12 @@ static INT32 _stp_btm_put_dump_to_aee(void)
                 }
                 retry = 0;
             }
+			retry = 0;
         } else {  
             retry ++;
-            osal_msleep(100);
+            osal_sleep_ms(20);
         }
-    }while ((remain > 0) || (retry < 2));
+    }while ((remain > 0) || (retry < 10));
 
     STP_BTM_INFO_FUNC("Exit..\n");
     return ret;
@@ -255,6 +244,7 @@ static INT32 _stp_btm_handler(MTKSTP_BTM_T *stp_btm, P_STP_BTM_OP pStpOp)
             // Flush dump data, and reset compressor
             STP_BTM_INFO_FUNC("Flush dump data\n");
             wcn_core_dump_flush(0);
+			mtk_wcn_stp_coredump_timeout_handle();
         break;
         
         default:
@@ -770,4 +760,46 @@ INT32 stp_notify_btm_dump(MTKSTP_BTM_T *stp_btm)
 	    return 0;
   }
 }
+
+static inline INT32 _stp_btm_do_fw_assert(MTKSTP_BTM_T *stp_btm){
+
+	INT32 status = -1;
+	INT32 j = 0;
+	MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+	//send assert command
+	STP_BTM_INFO_FUNC("trigger stp assert process\n");
+	bRet = stp_btm->wmt_notify(BTM_TRIGGER_STP_ASSERT_OP);
+	if (MTK_WCN_BOOL_TRUE == bRet)
+	{
+	do {  
+        if(0 != mtk_wcn_stp_coredump_start_get()){
+            status = 0;
+            break;
+        }
+		j++;
+		STP_BTM_INFO_FUNC("Wait for assert message (%d)\n", j);
+		
+        if(j > 150) 
+            break;   
+		osal_sleep_ms(20); 
+
+    } while(1);
+	}
+	else
+	{
+		status = -1;
+		STP_BTM_INFO_FUNC("trigger stp assert failed\n");
+	}
+    if (0 == status)
+		STP_BTM_INFO_FUNC("trigger stp assert succeed\n");
+    return status;
+	
+}
+
+
+INT32 stp_notify_btm_do_fw_assert(MTKSTP_BTM_T *stp_btm)
+{
+	return _stp_btm_do_fw_assert(stp_btm);
+}
+
 

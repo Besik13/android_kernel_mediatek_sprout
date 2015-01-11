@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -663,6 +649,7 @@ const WMT_IC_OPS wmt_ic_ops_mt6628 = {
     .co_clock_ctrl = mt6628_co_clock_ctrl,
     .is_quick_sleep  = mt6628_quick_sleep_flag_get,
     .is_aee_dump_support = mt6628_aee_dump_flag_get,
+    .trigger_stp_assert = NULL,
 };
 
 /*******************************************************************************
@@ -852,7 +839,7 @@ mt6628_sw_init (
         }
         WMT_INFO_FUNC("enable host STP-UART-FULL mode\n");
         /*13. wait for 10ms, enough for chip do mechanism switch.(at least 2ms is needed)*/
-        osal_msleep(10);
+        osal_sleep_ms(10);
         /* 14. Query chip STP options (TEST-ONLY) */
         /* 15. Query baud rate (stp, TEST-ONLY) */
         iRet = wmt_core_init_script(init_table_5, osal_array_size(init_table_5));

@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/mgmt/ais_fsm.h#1 $
 */
 
@@ -26,6 +12,14 @@
 
 /*
 ** $Log: ais_fsm.h $
+**
+** 02 07 2014 yuche.tsai
+** [ALPS01425175] [6589][6628][KK][S5/Altai][W] MT6589 Roaming???20?, Pass Criteria?14?
+** Shorten Beacon Timeout indication time from 3 sec to 1 sec.
+** Shorten Disconnect indication time to supplicant from 10 sec to 2 sec.
+** Davinci Label:
+** MT6620 E3: 20140207_ALPS_WIFI_FW_MT6620E3_V1_19.
+** MT6628: 20140207_ALPS_WIFI_FW_MT6628_V1_30.
  *
  * 11 22 2011 cp.wu
  * [WCXRP00001120] [MT6620 Wi-Fi][Driver] Modify roaming to AIS state transition from synchronous to asynchronous approach to avoid incomplete state termination
@@ -251,7 +245,7 @@
 #define AIS_BG_SCAN_INTERVAL_MIN_SEC        2 //30 // exponential to 960
 #define AIS_BG_SCAN_INTERVAL_MAX_SEC        2 //960 // 16min
 
-#define AIS_DELAY_TIME_OF_DISCONNECT_SEC    10
+#define AIS_DELAY_TIME_OF_DISCONNECT_SEC    2
 
 #define AIS_IBSS_ALONE_TIMEOUT_SEC          20 // seconds
 

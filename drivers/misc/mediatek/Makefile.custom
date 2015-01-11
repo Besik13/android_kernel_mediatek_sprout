@@ -16,6 +16,7 @@ ccflags-y += -I$(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/core
              -I$(srctree)/drivers/misc/mediatek/accdet/$(MTK_PLATFORM) \
              -I$(srctree)/drivers/misc/mediatek/auxadc/$(MTK_PLATFORM) \
              -I$(srctree)/drivers/misc/mediatek/camera/$(MTK_PLATFORM) \
+             -I$(srctree)/drivers/misc/mediatek/common_detect/$(MTK_PLATFORM) \
              -I$(srctree)/drivers/misc/mediatek/devinfo/$(MTK_PLATFORM) \
              -I$(srctree)/drivers/misc/mediatek/dispsys/$(MTK_PLATFORM) \
              -I$(srctree)/drivers/misc/mediatek/dual_ccci/$(MTK_PLATFORM)/include \
@@ -29,9 +30,12 @@ ccflags-y += -I$(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/core
              -I$(srctree)/drivers/misc/mediatek/met \
              -I$(MTK_CUSTOM_PATH)/dual_ccci/include \
              -I$(MTK_CUSTOM_PATH)/sync \
-             -I$(MTK_CUSTOM_PATH)/video \
              -I$(MTK_CUSTOM_PATH)/ssw/inc \
              -I$(MTK_CUSTOM_PATH)/lens/inc \
+
+ifneq ($(MTK_PLATFORM),mt6589)
+ccflags-y += -I$(MTK_CUSTOM_PATH)/video 
+endif
              
 # GuoXin Add
 ccflags-y += -I$(MTK_CUSTOM_PATH)/wdk \
@@ -45,6 +49,15 @@ ccflags-y += -I$(MTK_CUSTOM_PATH)/wdk \
 # GuoXin folder structure v2
 MTK_PROJECT_PATH_ROOT := $(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)
 MTK_PLATFORM_PATH_ROOT := $(srctree)/arch/arm/mach-$(MTK_PLATFORM)
+
+ifeq ($(CONFIG_MTK_PLATFORM),"mt6589")
+ccflags-y += 	-I$(srctree)/drivers/misc/mediatek/ldvt/ \
+		-I$(srctree)/drivers/misc/mediatek/pmt/ \
+		-I$(srctree)/drivers/misc/mediatek/power-loss-test/ \
+		-I$(srctree)/drivers/misc/mediatek/videox/ \
+		-I$(srctree)/drivers/misc/mediatek/dum-char/$(MTK_PLATFORM) \
+		-I$(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/battery/battery
+endif
 
 ccflags-y += -I$(MTK_PROJECT_PATH_ROOT)/accdet \
              -I$(MTK_PROJECT_PATH_ROOT)/rtc \
@@ -60,4 +73,3 @@ CUSTOM_KERNEL_FLAGS := $(addprefix -D, $(shell echo \
              $(CONFIG_CUSTOM_KERNEL_LCM) \
              $(CONFIG_CUSTOM_KERNEL_IMGSENSOR) | tr a-z A-Z))
 ccflags-y += $(CUSTOM_KERNEL_FLAGS)
-

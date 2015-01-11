@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -57,9 +43,9 @@
 extern unsigned int gStpDbgLvl;
 
 #define STP_DBG_FUNC(fmt, arg...)    if(gStpDbgLvl >= STP_LOG_DBG){  osal_dbg_print(PFX "%s: "  fmt, __FUNCTION__ ,##arg);}
-#define STP_INFO_FUNC(fmt, arg...)   if(gStpDbgLvl >= STP_LOG_INFO){ osal_dbg_print(PFX "%s:[I] "  fmt, __FUNCTION__ ,##arg);}
-#define STP_WARN_FUNC(fmt, arg...)   if(gStpDbgLvl >= STP_LOG_WARN){ osal_dbg_print(PFX "%s:[W] "  fmt, __FUNCTION__ ,##arg);}
-#define STP_ERR_FUNC(fmt, arg...)    if(gStpDbgLvl >= STP_LOG_ERR){  osal_dbg_print(PFX "%s:[E] "   fmt, __FUNCTION__ ,##arg);}
+#define STP_INFO_FUNC(fmt, arg...)   if(gStpDbgLvl >= STP_LOG_INFO){ osal_info_print(PFX "%s:[I] "  fmt, __FUNCTION__ ,##arg);}
+#define STP_WARN_FUNC(fmt, arg...)   if(gStpDbgLvl >= STP_LOG_WARN){ osal_warn_print(PFX "%s:[W] "  fmt, __FUNCTION__ ,##arg);}
+#define STP_ERR_FUNC(fmt, arg...)    if(gStpDbgLvl >= STP_LOG_ERR){  osal_err_print(PFX "%s:[E] "   fmt, __FUNCTION__ ,##arg);}
 #define STP_TRC_FUNC(f)              if(gStpDbgLvl >= STP_LOG_DBG){  osal_dbg_print(PFX "<%s> <%d>\n", __FUNCTION__, __LINE__);}
 
 #define STP_DUMP_PACKET_HEAD(a, b, c)     if(gStpDbgLvl >= STP_LOG_PKHEAD){stp_dump_data(a, b, c);}
@@ -229,6 +215,8 @@ typedef struct
     
     /* Flag to indicate the last WMT CLOSE*/
     UINT32 f_wmt_last_close;
+	/* Flag to indicate evt err has triggered assert or not*/
+	UINT32 f_evt_err_assert;
 }mtkstp_context_struct;
 
 /*******************************************************************************
@@ -560,6 +548,12 @@ extern INT32 mtk_wcn_stp_notify_sleep_for_thermal(void);
 
 
 extern INT32 mtk_wcn_stp_set_wmt_last_close(UINT32 value);
+
+extern INT32 mtk_wcn_stp_wmt_evt_err_trg_assert(VOID);
+extern UINT32 mtk_wcn_stp_get_wmt_evt_err_trg_assert(VOID);
+extern VOID mtk_wcn_stp_set_wmt_evt_err_trg_assert(UINT32 value);
+extern INT32 mtk_wcn_stp_coredump_timeout_handle(VOID);
+
 
 /*******************************************************************************
 *                              F U N C T I O N S

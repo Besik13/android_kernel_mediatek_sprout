@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -453,14 +439,17 @@ wmt_lib_set_hif (
         pHif->au4HifConf[0] = val;
         pHif->au4HifConf[1] = val;
         mtk_wcn_stp_set_if_tx_type(STP_UART_IF_TX);
+		wmt_plat_set_comm_if_type(STP_UART_IF_TX);
     }
     else if (STP_SDIO == val) {
         pHif->hifType = WMT_HIF_SDIO;
         mtk_wcn_stp_set_if_tx_type(STP_SDIO_IF_TX);
+		wmt_plat_set_comm_if_type(STP_SDIO_IF_TX);
     }
     else {
         WMT_WARN_FUNC("invalid stp mode: %u %u \n", hifconf, val);
         mtk_wcn_stp_set_if_tx_type(STP_MAX_IF_TX);
+		wmt_plat_set_comm_if_type(STP_MAX_IF_TX);
         return -1;
     }
 
@@ -1441,6 +1430,10 @@ MTK_WCN_BOOL wmt_lib_btm_cb (MTKSTP_BTM_WMT_OP_T op)
 	{
 	    bRet = wmt_core_get_aee_dump_flag();
 	}
+	else if (op == BTM_TRIGGER_STP_ASSERT_OP)
+	{
+		bRet = wmt_core_trigger_stp_assert();
+	}
     return bRet;
 }
 
@@ -1452,10 +1445,11 @@ MTK_WCN_BOOL wmt_cdev_rstmsg_snd(ENUM_WMTRSTMSG_TYPE_T msg){
           "DRV_TYPE_BT",
           "DRV_TYPE_FM" ,
           "DRV_TYPE_GPS",
-          "DRV_TYPE_WIFI"
+          "DRV_TYPE_WIFI",
+          "DRV_TYPE_ANT"
     };
 
-    for(i = 0 ; i <= WMTDRV_TYPE_WIFI; i++){
+    for(i = 0 ; i <= WMTDRV_TYPE_ANT; i++){
         //<1> check if reset callback is registered
         if(pDevWmt->rFdrvCb.fDrvRst[i]){
             //<2> send the msg to this subfucntion
@@ -1751,7 +1745,7 @@ MTK_WCN_BOOL wmt_lib_msgcb_reg (
     MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
     P_DEV_WMT pWmtDev = &gDevWmt;
 
-    if(eType >= 0 && eType <= WMTDRV_TYPE_WIFI){
+    if(eType >= 0 && eType <= WMTDRV_TYPE_ANT){
         WMT_DBG_FUNC("reg ok! \n");
         pWmtDev->rFdrvCb.fDrvRst[eType] = pCb;
         bRet = MTK_WCN_BOOL_TRUE;
@@ -1882,3 +1876,13 @@ UINT8 *wmt_lib_get_cpupcr_xml_format(UINT32 *len)
     return &g_cpupcr_buf[0];
 }
 
+INT32 wmt_lib_tm_temp_query(void)
+{
+    return wmt_dev_tm_temp_query();
+}
+
+
+UINT32 wmt_lib_set_host_assert_info(UINT32 type,UINT32 reason,UINT32 en)
+{
+	return stp_dbg_set_host_assert_info(type,reason,en);	
+}

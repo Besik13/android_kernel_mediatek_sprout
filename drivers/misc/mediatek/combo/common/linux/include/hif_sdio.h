@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: $
 */
 
@@ -44,6 +30,7 @@
 ********************************************************************************
 */
 #define HIF_SDIO_DEBUG  (0) /* 0:trun off debug msg and assert, 1:trun off debug msg and assert */
+#define HIF_SDIO_API_EXTENSION      (0)
 
 /*******************************************************************************
 *                    E X T E R N A L   R E F E R E N C E S
@@ -60,7 +47,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/vmalloc.h>
-
+#include <asm/atomic.h>
 
 #include "osal_typedef.h"
 #include "osal.h"
@@ -176,6 +163,16 @@ typedef enum {
 *                                 M A C R O S
 ********************************************************************************
 */
+
+#if WMT_PLAT_ALPS
+#ifdef CONFIG_SDIOAUTOK_SUPPORT
+#define MTK_HIF_SDIO_AUTOK_ENABLED 1
+#else
+#define MTK_HIF_SDIO_AUTOK_ENABLED 0
+#endif
+#else
+#define MTK_HIF_SDIO_AUTOK_ENABLED 0
+#endif
 
 
 
@@ -312,15 +309,54 @@ extern void mtk_wcn_hif_sdio_enable_irq(
     MTK_WCN_BOOL enable
     );
 
+extern INT32 mtk_wcn_hif_sdio_do_autok(
+    MTK_WCN_HIF_SDIO_CLTCTX ctx
+    );
+
 #define DELETE_HIF_SDIO_CHRDEV 1
 #if !(DELETE_HIF_SDIO_CHRDEV)
 INT32 mtk_wcn_hif_sdio_tell_chipid(INT32 chipId);
 INT32 mtk_wcn_hif_sdio_query_chipid(INT32 waitFlag);
 #endif
+
+#if HIF_SDIO_API_EXTENSION
+extern INT32 mtk_wcn_hif_sdio_f0_readb (
+    MTK_WCN_HIF_SDIO_CLTCTX ctx,
+    UINT32 offset,
+    PUINT8 pvb
+    );
+
+extern INT32 mtk_wcn_hif_sdio_f0_writeb (
+    MTK_WCN_HIF_SDIO_CLTCTX ctx,
+    UINT32 offset,
+    UINT8 vb
+    );
+
+extern INT32 mtk_wcn_hif_sdio_deep_sleep (
+    MTK_WCN_HIF_SDIO_CLTCTX ctx
+    );
+
+extern INT32 mtk_wcn_hif_sdio_wake_up(
+    MTK_WCN_HIF_SDIO_CLTCTX ctx
+    );
+
+#endif
+
 /*******************************************************************************
 *                              F U N C T I O N S
 ********************************************************************************
 */
+
+/*******************************************************************************
+*                   E X T E R N A L    F U N C T I O N   D E C L A R A T I O N S
+********************************************************************************
+*/
+
+#if MTK_HIF_SDIO_AUTOK_ENABLED
+extern void wait_sdio_autok_ready(void *);
+#endif
+
+
 #endif /* _HIF_SDIO_H */
 
 

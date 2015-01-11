@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /** $Log: stp_chrdev_gps.c $
  *
  * 12 13 2010 Sean.Wang
@@ -30,6 +16,7 @@
 #include <asm/current.h>
 #include <asm/uaccess.h>
 #include <linux/skbuff.h>
+#include <linux/device.h>
 
 #include "stp_exp.h"
 #include "wmt_exp.h"
@@ -49,8 +36,7 @@ MODULE_LICENSE("GPL");
 
 #define COMBO_IOC_GPS_HWVER           6
 
-unsigned int gDbgLevel = GPS_LOG_DBG;
-
+static unsigned int gDbgLevel = GPS_LOG_DBG;
 #define GPS_DBG_FUNC(fmt, arg...)    if(gDbgLevel >= GPS_LOG_DBG){ printk(PFX "%s: "  fmt, __FUNCTION__ ,##arg);}
 #define GPS_INFO_FUNC(fmt, arg...)   if(gDbgLevel >= GPS_LOG_INFO){ printk(PFX "%s: "  fmt, __FUNCTION__ ,##arg);}
 #define GPS_WARN_FUNC(fmt, arg...)   if(gDbgLevel >= GPS_LOG_WARN){ printk(PFX "%s: "  fmt, __FUNCTION__ ,##arg);}
@@ -390,11 +376,18 @@ void GPS_event_cb(void)
     return;
 }
 
+#if REMOVE_MK_NODE
+	struct class * stpgps_class = NULL;
+#endif
+
 static int GPS_init(void)
 {
     dev_t dev = MKDEV(GPS_major, 0);
     int alloc_ret = 0;
     int cdev_err = 0;
+#if REMOVE_MK_NODE
+		struct device * stpgps_dev = NULL;
+#endif
 
     /*static allocate chrdev*/
     alloc_ret = register_chrdev_region(dev, 1, GPS_DRIVER_NAME);
@@ -409,12 +402,29 @@ static int GPS_init(void)
     cdev_err = cdev_add(&GPS_cdev, dev, GPS_devs);
     if (cdev_err)
         goto error;
+#if REMOVE_MK_NODE  
 
+	stpgps_class = class_create(THIS_MODULE,"stpgps");
+	if(IS_ERR(stpgps_class))
+		goto error;
+	stpgps_dev = device_create(stpgps_class,NULL,dev,NULL,"stpgps");
+	if(IS_ERR(stpgps_dev))
+		goto error;
+#endif
     printk(KERN_ALERT "%s driver(major %d) installed.\n", GPS_DRIVER_NAME, GPS_major);
     
     return 0;
 
 error:
+	
+#if REMOVE_MK_NODE
+		if(!IS_ERR(stpgps_dev))
+			device_destroy(stpgps_class,dev);
+		if(!IS_ERR(stpgps_class)){
+			class_destroy(stpgps_class);
+			stpgps_class = NULL;
+		}
+#endif
     if (cdev_err == 0)
         cdev_del(&GPS_cdev);
 
@@ -427,6 +437,11 @@ error:
 static void GPS_exit(void)
 {
     dev_t dev = MKDEV(GPS_major, 0);
+#if REMOVE_MK_NODE
+		device_destroy(stpgps_class,dev);
+		class_destroy(stpgps_class);
+		stpgps_class = NULL;
+#endif
 
     cdev_del(&GPS_cdev);
     unregister_chrdev_region(dev, GPS_devs);
@@ -434,7 +449,28 @@ static void GPS_exit(void)
     printk(KERN_ALERT "%s driver removed.\n", GPS_DRIVER_NAME);
 }
 
+
+#ifdef MTK_WCN_REMOVE_KERNEL_MODULE
+	
+int mtk_wcn_stpgps_drv_init(void)
+{
+	return GPS_init();
+
+}
+
+void mtk_wcn_stpgps_drv_exit (void)
+{
+	return GPS_exit();
+}
+
+
+EXPORT_SYMBOL(mtk_wcn_stpgps_drv_init);
+EXPORT_SYMBOL(mtk_wcn_stpgps_drv_exit);
+#else
+	
 module_init(GPS_init);
 module_exit(GPS_exit);
+	
+#endif
 
 

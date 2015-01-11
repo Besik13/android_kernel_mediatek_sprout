@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #ifndef _STP_DEBUG_H_
 #define _STP_DEBUG_H_
 
@@ -60,7 +46,7 @@ typedef enum {
     STP_DBG_PKT_FIL_MAX
 } STP_DBG_PKT_FIL_T;
 
-static  char * const gStpDbgType[]={
+static  char * const gStpDbgType[8]={
     "< BT>",
     "< FM>",
     "<GPS>",
@@ -68,6 +54,7 @@ static  char * const gStpDbgType[]={
     "<WMT>",
     "<STP>",
     "<DBG>",
+    "<ANT>",
     "<UNKOWN>"
 };
 
@@ -203,6 +190,9 @@ typedef struct core_dump_t {
 
     // dump info
     CHAR info[STP_CORE_DUMP_INFO_SZ + 1];
+	
+	UCHAR *p_head;
+	UINT32 head_len;
 } WCN_CORE_DUMP_T, *P_WCN_CORE_DUMP_T;
 
 typedef enum _ENUM_STP_FW_ISSUE_TYPE_ {
@@ -211,6 +201,7 @@ typedef enum _ENUM_STP_FW_ISSUE_TYPE_ {
     STP_FW_NOACK_ISSUE = 0x2,
     STP_FW_WARM_RST_ISSUE = 0x3,
     STP_DBG_PROC_TEST = 0x4,
+    STP_HOST_TRIGGER_FW_ASSERT = 0x5,
     STP_FW_ISSUE_TYPE_MAX
 } ENUM_STP_FW_ISSUE_TYPE, *P_ENUM_STP_FW_ISSUE_TYPE;
 
@@ -221,6 +212,12 @@ typedef enum _ENUM_STP_FW_ISSUE_TYPE_ {
 #define STP_DBG_WIFI_VER_SIZE 8
 #define STP_DBG_ROM_VER_SIZE 4
 #define STP_ASSERT_TYPE_SIZE 32
+
+typedef struct stp_dbg_host_assert_t{
+	UINT32 drv_type;
+	UINT32 reason;
+	UINT32 assert_from_host;
+}STP_DBG_HOST_ASSERT_T, *P_STP_DBG_HOST_ASSERT_T;
 
 typedef struct stp_dbg_cpupcr_t {
     UINT32 chipId;
@@ -235,6 +232,7 @@ typedef struct stp_dbg_cpupcr_t {
     UINT32 fwTaskId;
     UINT32 fwRrq;
     UINT32 fwIsr;
+	STP_DBG_HOST_ASSERT_T host_assert_info;
     UINT8 assert_type[STP_ASSERT_TYPE_SIZE];
     ENUM_STP_FW_ISSUE_TYPE issue_type;
     OSAL_SLEEPABLE_LOCK lock;
@@ -286,6 +284,7 @@ extern int stp_dbg_log_ctrl (unsigned int on);
 extern INT32 stp_dbg_set_version_info(UINT32 chipid, UINT8 *pRomVer, UINT8 *wifiVer, UINT8 *pPatchVer, UINT8 *pPatchBrh);
 extern INT32 stp_dbg_cpupcr_infor_format(UINT8 **buf, UINT32 *len);
 extern INT32 stp_dbg_set_fw_info(UINT8 *assert_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE issue_type);
+extern INT32 stp_dbg_set_host_assert_info(UINT32 drv_type,UINT32 reason,UINT32 en);
 
 #endif /* end of _STP_DEBUG_H_ */
 

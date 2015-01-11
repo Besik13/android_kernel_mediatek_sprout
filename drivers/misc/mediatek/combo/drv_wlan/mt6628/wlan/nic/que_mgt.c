@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/nic/que_mgt.c#1 $
 */
 
@@ -818,7 +804,7 @@ qmActivateStaRec(
     }
 #endif
 
-    DBGLOG(QM, INFO, ("QM: +STA[%ld]\n", prStaRec->ucIndex));
+    DBGLOG(QM, INFO, ("QM: +STA[%u]\n", prStaRec->ucIndex));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1460,7 +1446,7 @@ qmEnqueueTxPackets(
 
 #endif
 
-        DBGLOG(QM, LOUD, ("Current queue length = %u\n", prTxQue->u4NumElem));
+        DBGLOG(QM, LOUD, ("Current queue length = %lu\n", prTxQue->u4NumElem));
     }while(prNextMsduInfo);
 
     if(  QUEUE_IS_NOT_EMPTY(&rNotEnqueuedQue) ) {
@@ -1605,7 +1591,7 @@ qmDequeueTxPacketsFromPerStaQueues(
     pu4HeadStaRecIndex = &(prQM->au4HeadStaRecIndex[ucTC]);
     pu4HeadStaRecForwardCount = &(prQM->au4ForwardCount[ucTC]);
 
-    DBGLOG(QM, LOUD, ("(Fairness) TID = %u Init Head STA = %u Resource = %u\n",
+    DBGLOG(QM, LOUD, ("(Fairness) TID = %u Init Head STA = %lu Resource = %lu\n",
         ucTC, *pu4HeadStaRecIndex, u4Resource));
 
 
@@ -2181,7 +2167,7 @@ qmDequeueTxPackets(
     /* dequeue packets from different AC queue based on available aucFreeBufferCount */
     /* TC0 to TC4: AC0~AC3, 802.1x (commands packets are not handled by QM) */
     for(i = TC4_INDEX; i >= TC0_INDEX; i--){
-        DBGLOG(QM, LOUD, ("Dequeue packets from Per-STA queue[%u]\n", i));
+        DBGLOG(QM, LOUD, ("Dequeue packets from Per-STA queue[%ld]\n", i));
 
         qmDequeueTxPacketsFromPerStaQueues(
             prAdapter,
@@ -2192,7 +2178,7 @@ qmDequeueTxPackets(
             );
 
         /* The aggregate number of dequeued packets */
-        DBGLOG(QM, LOUD, ("DQA)[%u](%lu)\n", i, rReturnedQue.u4NumElem));
+        DBGLOG(QM, LOUD, ("DQA)[%ld](%lu)\n", i, rReturnedQue.u4NumElem));
     }
 
 
@@ -2204,7 +2190,7 @@ qmDequeueTxPackets(
             prTcqStatus->aucFreeBufferCount[TC5_INDEX]
             );
 
-    DBGLOG(QM, LOUD, ("Current total number of dequeued packets = %u\n", rReturnedQue.u4NumElem));
+    DBGLOG(QM, LOUD, ("Current total number of dequeued packets = %lu\n", rReturnedQue.u4NumElem));
 
     if (QUEUE_IS_NOT_EMPTY(&rReturnedQue)){
         prReturnedPacketListHead = (P_MSDU_INFO_T)QUEUE_GET_HEAD(&rReturnedQue);
@@ -2678,7 +2664,7 @@ qmHandleRxPackets(
         /* Decide the Destination */
 #if CFG_RX_PKTS_DUMP
         if (prAdapter->rRxCtrl.u4RxPktsDumpTypeMask & BIT(HIF_RX_PKT_TYPE_DATA)) {
-            DBGLOG(SW4, INFO, ("QM RX DATA: net %u sta idx %u wlan idx %u ssn %u tid %u ptype %u 11 %u\n",
+            DBGLOG(SW4, INFO, ("QM RX DATA: net %lu sta idx %u wlan idx %u ssn %lu tid %lu ptype %u 11 %u\n",
                     HIF_RX_HDR_GET_NETWORK_IDX(prHifRxHdr),
                     prHifRxHdr->ucStaRecIdx,
                     prCurrSwRfb->ucWlanIdx,

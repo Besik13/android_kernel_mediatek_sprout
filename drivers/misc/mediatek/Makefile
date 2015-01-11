@@ -14,7 +14,16 @@ obj-y	+= mtprof/
 obj-y   += partition/
 
 obj-y	+= sched/
+ifneq ($(CONFIG_MTK_PLATFORM),"mt6589")
 obj-y	+= video/
+obj-y	+= power_gs/
+obj-y	+= btcvsd/
+endif
+ifeq ($(CONFIG_MTK_PLATFORM),"mt6589")
+obj-y	+= video/mt6589/
+obj-y += videox/
+obj-y += etm/
+endif
 ifneq ($(MTK_PROJECT), mt6589fpga_ca7_ldvt mt6582fpga_ldvt)
 
 endif
@@ -25,7 +34,7 @@ obj-y	+= emd_ctl/
 obj-y	+= $(call all-subdirs-with-makefile,gator-driver)
 obj-y	+= $(call all-subdirs-with-makefile,met)
 
-#obj-y   +=  hdmitx/
+obj-y   +=  hdmitx/
 obj-y	+= mmp/
 obj-y	+= ram_console/
 obj-y   += thermal/
@@ -111,10 +120,8 @@ obj-$(CONFIG_MTK_MTD_NAND) += nand/
 
 obj-y   += dbg_dump/
 obj-y	+= power/
-obj-y	+= power_gs/
 obj-y	+= pwm/
 obj-y	+= smi/
-obj-y	+= btcvsd/
 obj-y	+= sound/
 obj-y	+= spi/
 obj-y	+= usb20/

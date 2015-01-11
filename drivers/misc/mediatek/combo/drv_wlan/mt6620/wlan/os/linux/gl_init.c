@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/gl_init.c#7 $
 */
 
@@ -661,7 +647,9 @@
 #include "gl_wext.h"
 #include "gl_cfg80211.h"
 #include "precomp.h"
-
+#if defined(MTK_TC1_FEATURE_TEMP)
+#include <tc1_partition.h> //build
+#endif
 /*******************************************************************************
 *                              C O N S T A N T S
 ********************************************************************************
@@ -706,14 +694,19 @@ typedef struct _WLANDEV_INFO_T {
 MODULE_AUTHOR(NIC_AUTHOR);
 MODULE_DESCRIPTION(NIC_DESC);
 MODULE_SUPPORTED_DEVICE(NIC_NAME);
-MODULE_LICENSE("GPL");
+
+#if 0
+    MODULE_LICENSE("MTK Propietary");
+#else
+    MODULE_LICENSE("GPL");
+#endif
 
 #define NIC_INF_NAME    "wlan%d" /* interface name */
 
-#if DBG
-    UINT_8  aucDebugModule[DBG_MODULE_NUM];
-    UINT_32 u4DebugModule = 0;
-#endif /* DBG */
+/* support to change debug module info dynamically */
+UINT_8  aucDebugModule[DBG_MODULE_NUM];
+UINT_32 u4DebugModule = 0;
+
 
 //4 2007/06/26, mikewu, now we don't use this, we just fix the number of wlan device to 1
 static WLANDEV_INFO_T arWlanDevInfo[CFG_MAX_WLAN_DEVICES] = {{0}};
@@ -988,11 +981,15 @@ glLoadNvram (
         prGlueInfo->fgNvramAvailable = TRUE;
 
         // load MAC Address
+#if !defined(MTK_TC1_FEATURE_TEMP)
         for (i = 0 ; i < sizeof(PARAM_MAC_ADDR_LEN) ; i += sizeof(UINT_16)) {
             kalCfgDataRead16(prGlueInfo,
                     OFFSET_OF(WIFI_CFG_PARAM_STRUCT, aucMacAddress) + i,
                     (PUINT_16) (((PUINT_8)prRegInfo->aucMacAddr) + i));
         }
+#else
+	TC1_FAC_NAME(FacReadWifiMacAddr)((unsigned char *)prRegInfo->aucMacAddr);
+#endif
 
         // load country code
         kalCfgDataRead16(prGlueInfo,
@@ -2092,6 +2089,12 @@ static const struct net_device_ops wlan_netdev_ops = {
 };
 #endif
 
+#ifdef CONFIG_PM
+static const struct wiphy_wowlan_support wlan_wowlan_support = {
+		.flags = WIPHY_WOWLAN_DISCONNECT,
+	};
+#endif
+
 /*----------------------------------------------------------------------------*/
 /*!
 * \brief A method for creating Linux NET4 struct net_device object and the
@@ -2157,7 +2160,10 @@ wlanNetCreate(
     prWdev->wiphy->cipher_suites    = (const u32 *)mtk_cipher_suites;
     prWdev->wiphy->n_cipher_suites  = ARRAY_SIZE(mtk_cipher_suites);
     prWdev->wiphy->flags            = WIPHY_FLAG_CUSTOM_REGULATORY | WIPHY_FLAG_SUPPORTS_FW_ROAM;
-
+#ifdef CONFIG_PM
+	kalMemCopy(&prWdev->wiphy->wowlan, &wlan_wowlan_support,
+		sizeof(struct wiphy_wowlan_support));
+#endif
     //4 <2> Create Glue structure
     prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(prWdev->wiphy);
     if (!prGlueInfo) {
@@ -2367,16 +2373,16 @@ static void wlanEarlySuspend(void)
     if (!in_dev)
        return;
 
-    rtnl_lock();
+    //rtnl_lock();
     if(!in_dev->ifa_list ||!in_dev->ifa_list->ifa_local){
            in_dev_put(in_dev);
-           rtnl_unlock();
+           //rtnl_unlock();
            DBGLOG(INIT, INFO, ("ip is not avaliable.\n"));
            return;
    }
     // <4> copy the IPv4 address
     kalMemCopy(ip, &(in_dev->ifa_list->ifa_local), sizeof(ip));
-    rtnl_unlock();
+    //rtnl_unlock();
     in_dev_put(in_dev);
     
     DBGLOG(INIT, INFO, ("ip is %d.%d.%d.%d\n",
@@ -2435,8 +2441,9 @@ static void wlanEarlySuspend(void)
 
     if (rStatus != WLAN_STATUS_SUCCESS) {
             DBGLOG(INIT, INFO, ("wlanoidSetCurrentPacketFilter fail 0x%lx\n", rStatus));
-    }else
+    }else{
     	    DBGLOG(INIT, INFO, ("wlanoidSetCurrentPacketFilter 0x%lx\n", u4PacketFilter));
+	}
 
     rStatus = kalIoctl(prGlueInfo,
             wlanoidQueryCurrentPacketFilter,
@@ -2496,20 +2503,20 @@ static void wlanEarlySuspend(void)
 	struct inet6_dev *in6_dev = NULL;
 	
 	in6_dev = in6_dev_get(prDev);
-	if (!in6_dev){
+		if (!in6_dev)
 	    return;
 	
-	rtnl_lock();
-	if(!in6_dev->ac_list ||!in6_dev->ac_list->acl_addr){
-		in6_dev_put(in6_dev);
-		rtnl_unlock();
+	//rtnl_lock();
+	if(!in6_dev->ac_list ||!in6_dev->ac_list->aca_addr.s6_addr16){
+		//rtnl_unlock();
+			in6_dev_put(in6_dev);
 		DBGLOG(INIT, INFO, ("ipv6 is not avaliable.\n"));
 		return;
 	}
 	// <4> copy the IPv6 address
-	kalMemCopy(ip6, &(in6_dev->ac_list->acl_local), sizeof(ip6));
-	rtnl_unlock();
-	in_dev_put(in6_dev);
+	kalMemCopy(ip6, in6_dev->ac_list->aca_addr.s6_addr16, sizeof(ip6));
+	//rtnl_unlock();
+		in6_dev_put(in6_dev);
 
 	DBGLOG(INIT, INFO, ("ipv6 is %d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d\n",
 		ip6[0],ip6[1],ip6[2],ip6[3],
@@ -2631,10 +2638,10 @@ static void wlanLateResume(void)
         if (!in_dev)
            return;
     
- 	rtnl_lock();   
+ 	//rtnl_lock();   
         if(!in_dev->ifa_list ||!in_dev->ifa_list->ifa_local) {
                in_dev_put(in_dev);
-               rtnl_unlock();
+               //rtnl_unlock();
                DBGLOG(INIT, INFO, ("ip is not avaliable.\n"));
                return;
        }
@@ -2652,7 +2659,7 @@ static void wlanLateResume(void)
           }
 #endif        
        in_dev_put(in_dev);
-       rtnl_unlock();
+       //rtnl_unlock();
     
 #else
     if(!prDev || !(prDev->ip_ptr)||\
@@ -2687,18 +2694,19 @@ static void wlanLateResume(void)
 	struct inet6_dev *in6_dev = NULL;
 	
 	in6_dev = in6_dev_get(prDev);
-	if (!in6_dev){
+		if (!in6_dev)
 	    return;
 	
-	rtnl_lock();
-	if(!in6_dev->ac_list ||!in6_dev->ac_list->acl_addr){
-		in6_dev_put(in6_dev);
-		rtnl_unlock();
+	//rtnl_lock();
+	if(!in6_dev->ac_list ||!in6_dev->ac_list->aca_addr.s6_addr16){
+		//rtnl_unlock();
+			in6_dev_put(in6_dev);
 		DBGLOG(INIT, INFO, ("ipv6 is not avaliable.\n"));
 		return;
 	}
 
-	rtnl_unlock();
+	//rtnl_unlock();
+		in6_dev_put(in6_dev);
      }
 #endif
 
@@ -2816,6 +2824,57 @@ static void wlan_late_resume(struct early_suspend *h)
 extern void wlanRegisterNotifier(void);
 extern void wlanUnregisterNotifier(void);
 
+
+typedef int (*set_p2p_mode)(struct net_device *netdev, PARAM_CUSTOM_P2P_SET_STRUC_T p2pmode);
+typedef void (*set_dbg_level)(unsigned char modules[DBG_MODULE_NUM]);
+
+extern void register_set_p2p_mode_handler(set_p2p_mode handler);
+extern void register_set_dbg_level_handler(set_dbg_level handler);
+
+static int 
+set_p2p_mode_handler(
+    struct net_device *netdev, 
+    PARAM_CUSTOM_P2P_SET_STRUC_T p2pmode
+)
+{
+    P_GLUE_INFO_T prGlueInfo  = *((P_GLUE_INFO_T *)netdev_priv(netdev));
+    PARAM_CUSTOM_P2P_SET_STRUC_T rSetP2P;
+    WLAN_STATUS rWlanStatus = WLAN_STATUS_SUCCESS;
+    UINT_32 u4BufLen = 0;
+
+    rSetP2P.u4Enable = p2pmode.u4Enable;
+    rSetP2P.u4Mode = p2pmode.u4Mode;
+
+    if(!rSetP2P.u4Enable) {
+        p2pNetUnregister(prGlueInfo, TRUE);
+    }
+
+    rWlanStatus = kalIoctl(prGlueInfo,
+                        wlanoidSetP2pMode,
+                        (PVOID)&rSetP2P,
+                        sizeof(PARAM_CUSTOM_P2P_SET_STRUC_T),
+                        FALSE,
+                        FALSE,
+                        TRUE,
+                        FALSE,
+                        &u4BufLen);
+    printk("set_p2p_mode_handler ret = %d\n", rWlanStatus);
+    if(rSetP2P.u4Enable) {
+        p2pNetRegister(prGlueInfo, TRUE);
+    }
+
+    return 0;
+}
+
+static void 
+set_dbg_level_handler(
+    unsigned char dbg_lvl[DBG_MODULE_NUM]
+)
+{
+    kalMemCopy(aucDebugModule, dbg_lvl, sizeof(aucDebugModule));
+    kalPrint("[wlan] change debug level");
+}
+
 /*----------------------------------------------------------------------------*/
 /*!
 * \brief Wlan probe function. This function probes and initializes the device.
@@ -2843,36 +2902,6 @@ wlanProbe(
 
 
     do {
-#if DBG
-        int i;
-        /* Initialize DEBUG CLASS of each module */
-        for (i = 0; i < DBG_MODULE_NUM; i++) {
-            aucDebugModule[i] = DBG_CLASS_ERROR | \
-                                DBG_CLASS_WARN | \
-                                DBG_CLASS_STATE | \
-                                DBG_CLASS_TRACE | \
-                                DBG_CLASS_EVENT | \
-                                DBG_CLASS_INFO;
-
-            //aucDebugModule[i] = 0;
-        }
-#if 0
-        aucDebugModule[DBG_INIT_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_ARB_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_JOIN_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        //aucDebugModule[DBG_RX_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_TX_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_NIC_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_HAL_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_KEVIN_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO | DBG_CLASS_TEMP;
-        aucDebugModule[DBG_SCAN_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_REQ_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        //aucDebugModule[DBG_MGT_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-        aucDebugModule[DBG_RSN_IDX] |= DBG_CLASS_TRACE;
-        aucDebugModule[DBG_ROAMING_IDX] |= DBG_CLASS_TRACE | DBG_CLASS_INFO;
-#endif
-#endif /* DBG */
-
         //4 <1> Initialize the IO port of the interface
         /*  GeorgeKuo: pData has different meaning for _HIF_XXX:
          * _HIF_EHPI: pointer to memory base variable, which will be
@@ -3080,6 +3109,8 @@ bailout:
         if(rSubModHandler[P2P_MODULE].subModInit) {
             wlanSubModInit(prGlueInfo);
         }
+        /* register set_p2p_mode handler to mtk_wmt_wifi */
+        register_set_p2p_mode_handler(set_p2p_mode_handler);
 #endif
     }
     while (FALSE);
@@ -3115,6 +3146,8 @@ wlanRemove(
         DBGLOG(INIT, INFO, ("0 == u4WlanDevNum\n"));
         return;
     }
+    /* unregister set_p2p_mode handler to mtk_wmt_wifi */
+    register_set_p2p_mode_handler(NULL);
 
     prDev = arWlanDevInfo[u4WlanDevNum-1].prDev;
     prWlandevInfo = &arWlanDevInfo[u4WlanDevNum-1];
@@ -3242,14 +3275,13 @@ wlanRemove(
 //1 Module Entry Point
 static int initWlan(void)
 {
-    int ret = 0;
+    int ret = 0, i;
 
     DBGLOG(INIT, INFO, ("initWlan\n"));
 
     /* memory pre-allocation */
     kalInitIOBuffer();
 
-    //return ((glRegisterBus(wlanProbe, wlanRemove) == WLAN_STATUS_SUCCESS) ? 0: -EIO);
     ret = ((glRegisterBus(wlanProbe, wlanRemove) == WLAN_STATUS_SUCCESS) ? 0: -EIO);
 
     if (ret == -EIO) {
@@ -3260,6 +3292,37 @@ static int initWlan(void)
 #if (CFG_CHIP_RESET_SUPPORT)
     glResetInit();
 #endif
+
+    /* register set_dbg_level handler to mtk_wmt_wifi */
+    register_set_dbg_level_handler(set_dbg_level_handler);
+
+    /* Set the initial DEBUG CLASS of each module */
+#if DBG
+    for (i = 0; i < DBG_MODULE_NUM; i++) {
+        aucDebugModule[i] = DBG_CLASS_MASK; //enable all
+    }
+#else
+    // Initial debug level is D1
+    for (i = 0; i < DBG_MODULE_NUM; i++) {
+        aucDebugModule[i] = DBG_CLASS_ERROR | \
+            DBG_CLASS_WARN | \
+            DBG_CLASS_STATE | \
+            DBG_CLASS_EVENT | \
+            DBG_CLASS_TRACE | \
+            DBG_CLASS_INFO;
+    }
+    aucDebugModule[DBG_TX_IDX] &= ~(DBG_CLASS_EVENT | \
+        DBG_CLASS_TRACE | \
+        DBG_CLASS_INFO);
+    aucDebugModule[DBG_RX_IDX] &= ~(DBG_CLASS_EVENT | \
+        DBG_CLASS_TRACE | \
+        DBG_CLASS_INFO);
+    aucDebugModule[DBG_REQ_IDX] &= ~(DBG_CLASS_EVENT | \
+        DBG_CLASS_TRACE | \
+        DBG_CLASS_INFO);
+    aucDebugModule[DBG_INTR_IDX] = 0;
+    aucDebugModule[DBG_MEM_IDX] = 0;
+#endif /* DBG */
 
     return ret;
 } /* end of initWlan() */
@@ -3277,7 +3340,11 @@ static int initWlan(void)
 //1 Module Leave Point
 static VOID exitWlan(void)
 {
-    //printk("remove %p\n", wlanRemove);
+    DBGLOG(INIT, INFO, ("exitWlan\n"));
+
+    /* unregister set_dbg_level handler to mtk_wmt_wifi */
+    register_set_dbg_level_handler(NULL);
+
 #if CFG_CHIP_RESET_SUPPORT
     glResetUninit();
 #endif

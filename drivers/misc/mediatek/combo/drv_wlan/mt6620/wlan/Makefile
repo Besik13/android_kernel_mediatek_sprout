@@ -1,21 +1,22 @@
 # ---------------------------------------------------
 # Compile Options
 # ---------------------------------------------------
+include $(MTK_PATH_BUILD)/Makefile
 ccflags-y += -DLINUX -DMT6620
 
-ifeq ($(CONFIG_MTK_WAPI_SUPPORT), y)
+ifeq ($(MTK_WAPI_SUPPORT), yes)
     ccflags-y += -DCFG_SUPPORT_WAPI=1
 else
     ccflags-y += -DCFG_SUPPORT_WAPI=0
 endif
 
-ifeq ($(CONFIG_HAVE_XLOG_FEATURE), y)
+ifeq ($(HAVE_XLOG_FEATURE), yes)
     ccflags-y += -DCFG_SUPPORT_XLOG=1
 else
     ccflags-y += -DCFG_SUPPORT_XLOG=0
 endif
 
-ifeq ($(CONFIG_HAVE_AEE_FEATURE), y)
+ifeq ($(HAVE_AEE_FEATURE), yes)
     ccflags-y += -DCFG_SUPPORT_AEE=1
 else
     ccflags-y += -DCFG_SUPPORT_AEE=0
@@ -35,6 +36,13 @@ ccflags-y += -DMTK_PACKET_FILTERING_SUPPORT
 ccflags-y += -DDBG=0
 ccflags-y += -I$(src)/os -I$(src)/os/linux/include -I$(src)/os/linux/hif/sdio/include
 ccflags-y += -I$(src)/include -I$(src)/include/nic -I$(src)/include/mgmt
+
+ifeq ($(MTK_TC1_FEATURE), y)
+#ccflags-y += -I$(srctree)/mediatek/external/tc1_interface
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/tc1_interface
+endif
+
+
 
 obj-$(CONFIG_MTK_COMBO_WIFI) += $(MODULE_NAME).o
 #obj-m += $(MODULE_NAME).o
@@ -123,7 +131,7 @@ MGMT_OBJS += $(MGMT_DIR)p2p_assoc.o \
              $(MGMT_DIR)p2p_state.o        
                  
 
-ifeq ($(CONFIG_MTK_WAPI_SUPPORT), y)
+ifeq ($(MTK_WAPI_SUPPORT), yes)
 MGMT_OBJS += $(MGMT_DIR)wapi.o
 endif
 

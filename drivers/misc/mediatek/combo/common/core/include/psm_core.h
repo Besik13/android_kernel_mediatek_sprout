@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -66,6 +52,7 @@
 #define STP_PSM_SDIO_IDLE_TIME_SLEEP           100   //temporary for SDIO stress testing
 #define STP_PSM_WAIT_EVENT_TIMEOUT        6000
 
+#if 0
 #define STP_PSM_WMT_EVENT_SLEEP_EN                    (0x1UL << 0)
 #define STP_PSM_WMT_EVENT_WAKEUP_EN                   (0x1UL << 1)
 #define STP_PSM_BLOCK_DATA_EN                         (0x1UL << 2)
@@ -75,19 +62,20 @@
 #define STP_PSM_WMT_EVENT_HOST_WAKEUP_EN                    (0x1UL << 6)
 #define STP_PSM_WMT_EVENT_DISABLE_MONITOR_TX_HIGH_DENSITY   (0x1UL << 7) 
 #define STP_PSM_WMT_EVENT_DISABLE_MONITOR_RX_HIGH_DENSITY   (0x1UL << 8)
-
-#define PSM_USE_COUNT_PACKAGE 0
-
-#if PSM_USE_COUNT_PACKAGE
-#define MTK_COMBO_PSM_RX_TH_DEFAULT (2000)
-#define MTK_COMBO_PSM_TX_TH_DEFAULT (400)
-INT32 stp_psm_disable_by_tx_rx_density(MTKSTP_PSM_T *stp_psm, INT32 dir);
-#else
-#define	SAMPLE_DURATION 1 /*1 second*/
-#define RTX_SPEED_THRESHOLD	50000	/*50KB/s*/
-INT32 stp_psm_disable_by_tx_rx_density(MTKSTP_PSM_T *stp_psm, INT32 dir,INT32 length);
 #endif
 
+#define STP_PSM_WMT_EVENT_SLEEP_EN                    (0)
+#define STP_PSM_WMT_EVENT_WAKEUP_EN                   (1)
+#define STP_PSM_BLOCK_DATA_EN                         (2)
+#define STP_PSM_WMT_EVENT_DISABLE_MONITOR             (3)
+#define STP_PSM_WMT_EVENT_ROLL_BACK_EN                (4)
+#define STP_PSM_RESET_EN                              (5)
+#define STP_PSM_WMT_EVENT_HOST_WAKEUP_EN                    (6)
+#define STP_PSM_WMT_EVENT_DISABLE_MONITOR_TX_HIGH_DENSITY   (7) 
+#define STP_PSM_WMT_EVENT_DISABLE_MONITOR_RX_HIGH_DENSITY   (8)
+
+#define MTK_COMBO_PSM_RX_TH_DEFAULT (1600)
+#define MTK_COMBO_PSM_TX_TH_DEFAULT (300)
 
 /* OP command ring buffer : must be power of 2 */
 #define STP_OP_BUF_SIZE (16)
@@ -156,7 +144,7 @@ typedef struct mtk_stp_psm
     //P_OSAL_OP               current_active_op;
     UINT32               last_active_opId;
     MTKSTP_PSM_STATE_T      work_state; /*working state*/
-    INT32                   flag;
+    OSAL_BIT_OP_VAR         flag;
     
     /* in normal cases, sleep op is always enabled; but in error cases, we can't execute sleep cmd, Eg: FW assert, core dump*/
     INT32                   sleep_en;   
@@ -210,6 +198,7 @@ INT32 stp_psm_hold_data (
     const UINT8 type
     );
 INT32 stp_psm_do_wakeup(MTKSTP_PSM_T *stp_psm);
+INT32 stp_psm_disable_by_tx_rx_density(MTKSTP_PSM_T *stp_psm, INT32 dir);
 INT32 stp_psm_reset(MTKSTP_PSM_T *stp_psm);
 INT32 stp_psm_disable(MTKSTP_PSM_T *stp_psm);
 INT32 stp_psm_enable(MTKSTP_PSM_T *stp_psm, INT32 idle_time_to_sleep);

@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: $
 */
 
@@ -134,6 +120,8 @@
 #endif
 
 #define COHEC_00006052 (1)
+//#define COHEC_00006052 (0)
+
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -211,6 +199,7 @@ typedef struct _MTK_WCN_STP_SDIO_HIF_INFO {
     INT32 awake_flag;
     OSAL_EVENT tx_rx_event;
     OSAL_SIGNAL isr_check_complete;
+	INT32 dump_flag;
 #endif
     struct work_struct tx_work;
     struct work_struct rx_work;

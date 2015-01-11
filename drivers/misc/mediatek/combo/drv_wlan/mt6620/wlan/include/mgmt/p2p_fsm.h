@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/TRUNK/WiFi_P2P_Driver/include/mgmt/p2p_fsm.h#23 $
 */
 
@@ -1833,6 +1819,8 @@ struct _P2P_SPECIFIC_BSS_INFO_T {
     PARAM_CUSTOM_NOA_PARAM_STRUC_T rNoaParam;
     PARAM_CUSTOM_OPPPS_PARAM_STRUC_T rOppPsParam;
 
+    UINT_16                 u2WpaIeLen;
+    UINT_8                  aucWpaIeBuffer[ELEM_HDR_LEN + ELEM_MAX_LEN_WPA];
 };
 
 

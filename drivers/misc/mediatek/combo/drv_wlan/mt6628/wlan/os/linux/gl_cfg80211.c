@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: @(#) gl_cfg80211.c@@
 */
 
@@ -256,7 +242,7 @@ mtk_cfg80211_add_key (
             TRUE,
             FALSE,
             &u4BufLen);
-    
+    DBGLOG(REQ, TRACE, ("wlanoidSetAddkey return %d\n", rStatus));
     if (rStatus == WLAN_STATUS_SUCCESS)
         i4Rslt = 0;
 
@@ -380,13 +366,10 @@ mtk_cfg80211_set_default_key (
     prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
     ASSERT(prGlueInfo);
 
-#if 1
     printk("--> %s()\n", __func__);
-#endif
+    /*work around aosp defualt supplicant fail*/
+	return WLAN_STATUS_SUCCESS;
 
-    /* not implemented */
-
-    return -EINVAL;
 }
 
 
@@ -543,7 +526,7 @@ mtk_cfg80211_scan (
     P_GLUE_INFO_T prGlueInfo = NULL;
     WLAN_STATUS rStatus;
     UINT_32 u4BufLen;
-    PARAM_SCAN_REQUEST_EXT_T rScanRequest;
+    static PARAM_SCAN_REQUEST_EXT_T rScanRequest;
 
     prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
     ASSERT(prGlueInfo);
@@ -776,19 +759,22 @@ mtk_cfg80211_connect (
         PUINT_8 prDesiredIE = NULL;
 
 #if CFG_SUPPORT_WAPI
-        rStatus = kalIoctl(prGlueInfo,
-                wlanoidSetWapiAssocInfo,
-                sme->ie,
-                sme->ie_len,
-                FALSE,
-                FALSE,
-                FALSE,
-                FALSE,
-                &u4BufLen);
-        
-        if (rStatus != WLAN_STATUS_SUCCESS) {
-            DBGLOG(SEC, WARN, ("[wapi] set wapi assoc info error:%lx\n", rStatus));
-        }
+		if (wextSrchDesiredWAPIIE(sme->ie,
+						sme->ie_len, (PUINT_8 *)&prDesiredIE)){
+	        rStatus = kalIoctl(prGlueInfo,
+	                wlanoidSetWapiAssocInfo,
+	                prDesiredIE,
+	                IE_SIZE(prDesiredIE),
+	                FALSE,
+	                FALSE,
+	                FALSE,
+	                FALSE,
+	                &u4BufLen);
+	    
+	        if (rStatus != WLAN_STATUS_SUCCESS) {
+	            DBGLOG(SEC, WARN, ("[wapi] set wapi assoc info error:%lx\n", rStatus));
+	        }
+		}
 #endif
 #if CFG_SUPPORT_WPS2
         if (wextSrchDesiredWPSIE(sme->ie,
@@ -1312,7 +1298,9 @@ mtk_cfg80211_remain_on_channel (
     struct wireless_dev *wdev,
 #endif
     struct ieee80211_channel *chan,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
     enum nl80211_channel_type channel_type,
+#endif
     unsigned int duration,
     u64 *cookie
     )
@@ -1602,14 +1590,16 @@ mtk_cfg80211_testmode_get_sta_statistics(
    
 	if(!prParams->aucMacAddr) {
 		DBGLOG(QM, TRACE,("%s MAC Address is NULL\n", __FUNCTION__));
-		return -EINVAL;
+		i4Status = -EINVAL;
+		goto nla_put_failure;
 	}
 	
 	skb = cfg80211_testmode_alloc_reply_skb(wiphy, sizeof(PARAM_GET_STA_STA_STATISTICS) + 1);
 
 	if(!skb) {
-        DBGLOG(QM, TRACE, ("%s allocate skb failed:%lx\n", __FUNCTION__, rStatus));
-		return -ENOMEM;
+        DBGLOG(QM, TRACE, ("%s allocate skb failed:\n", __FUNCTION__));
+		i4Status = -ENOMEM;
+		goto nla_put_failure;
 	}
 
     DBGLOG(QM, TRACE,("Get ["MACSTR"] STA statistics\n", MAC2STR(prParams->aucMacAddr)));
@@ -1720,7 +1710,7 @@ mtk_cfg80211_testmode_get_sta_statistics(
     
 	i4Status = cfg80211_testmode_reply(skb);
 
-    nla_put_failure:    
+nla_put_failure:    
     return i4Status;
 }
 

@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/TRUNK/WiFi_P2P_Driver/mgmt/p2p_fsm.c#61 $
 */
 
@@ -877,6 +863,16 @@ static PUINT_8 apucDebugP2pState[P2P_STATE_NUM] = {
     (PUINT_8)DISP_STRING("P2P_STATE_GC_JOIN")
 };
 /*lint -restore */
+#else
+static UINT_8 apucDebugP2pState[P2P_STATE_NUM] = {
+    P2P_STATE_IDLE,
+    P2P_STATE_SCAN,
+    P2P_STATE_AP_CHANNEL_DETECT,
+    P2P_STATE_REQING_CHANNEL,
+    P2P_STATE_CHNL_ON_HAND,
+    P2P_STATE_GC_JOIN
+};
+
 #endif /* DBG */
 
 
@@ -1084,9 +1080,15 @@ p2pFsmStateTransition (
         fgIsTransOut = fgIsTransOut?FALSE:TRUE;
 
         if (!fgIsTransOut) {
+            #if DBG
             DBGLOG(P2P, STATE, ("TRANSITION: [%s] -> [%s]\n",
                                 apucDebugP2pState[prP2pFsmInfo->eCurrentState],
                                 apucDebugP2pState[eNextState]));
+            #else
+            DBGLOG(P2P, STATE, ("[%d] TRANSITION: [%d] -> [%d]\n", 
+                                DBG_P2P_IDX, apucDebugP2pState[prP2pFsmInfo->eCurrentState], 
+                                apucDebugP2pState[eNextState]));
+            #endif
 
             /* Transition into current state. */
             prP2pFsmInfo->ePreviousState = prP2pFsmInfo->eCurrentState;

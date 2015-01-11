@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/common/wlan_lib.c#2 $
 */
 /*! \file   wlan_lib.c
@@ -1794,6 +1780,25 @@ wlanAdapterStart (
         wlanLoadManufactureData(prAdapter, prRegInfo);
 #endif
 
+#ifdef MTK_TC1_FEATURE// 1 //keep alive packet time change from default 30secs to 20secs. //TC01//
+{
+	CMD_SW_DBG_CTRL_T rCmdSwCtrl;
+	rCmdSwCtrl.u4Id = 0x90100000;
+	rCmdSwCtrl.u4Data = 20;
+	//printk( "wlanAdapterStart Keepaliveapcket 0x%x, %d\n", rCmdSwCtrl.u4Id, rCmdSwCtrl.u4Data);
+	wlanSendSetQueryCmd(prAdapter,
+		CMD_ID_SW_DBG_CTRL,
+		TRUE,
+		FALSE,
+		FALSE,
+		NULL,
+		NULL,
+		sizeof(CMD_SW_DBG_CTRL_T),
+		(PUINT_8)(&rCmdSwCtrl),
+		NULL,
+		0);
+}
+#endif
 #if (defined(MT5931) && (!CFG_SUPPORT_BCM_BWCS))
         //Enable DPD calibration.
         rBwcsPta.u.aucBTPParams[0] = 0x00;

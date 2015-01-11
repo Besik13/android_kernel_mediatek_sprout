@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/mgmt/ais_fsm.c#1 $
 */
 
@@ -2097,7 +2083,7 @@ aisFsmSteps (
 
         case AIS_STATE_WAIT_FOR_NEXT_SCAN:
 
-            DBGLOG(AIS, LOUD, ("SCAN: Idle Begin - Current Time = %ld\n", kalGetTimeTick()));
+            DBGLOG(AIS, LOUD, ("SCAN: Idle Begin - Current Time = %u\n", kalGetTimeTick()));
 
             cnmTimerStartTimer(prAdapter,
                     &prAisFsmInfo->rBGScanTimer,
@@ -2337,7 +2323,7 @@ aisFsmRunEventScanDone (
     ASSERT(prAdapter);
     ASSERT(prMsgHdr);
 
-    DBGLOG(AIS, LOUD, ("EVENT-SCAN DONE: Current Time = %ld\n", kalGetTimeTick()));
+    DBGLOG(AIS, LOUD, ("EVENT-SCAN DONE: Current Time = %u\n", kalGetTimeTick()));
 
     prAisFsmInfo = &(prAdapter->rWifiVar.rAisFsmInfo);
     prConnSettings = &(prAdapter->rWifiVar.rConnSettings);
@@ -3844,7 +3830,7 @@ aisFsmRunEventBGSleepTimeOut (
 
     switch (prAisFsmInfo->eCurrentState) {
     case AIS_STATE_WAIT_FOR_NEXT_SCAN:
-        DBGLOG(AIS, LOUD, ("EVENT - SCAN TIMER: Idle End - Current Time = %ld\n", kalGetTimeTick()));
+        DBGLOG(AIS, LOUD, ("EVENT - SCAN TIMER: Idle End - Current Time = %u\n", kalGetTimeTick()));
 
         eNextState = AIS_STATE_LOOKING_FOR;
 

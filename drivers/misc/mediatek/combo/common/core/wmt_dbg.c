@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief brief description
 
@@ -53,6 +39,18 @@
 static struct proc_dir_entry *gWmtDbgEntry = NULL;
 COEX_BUF gCoexBuf;
 
+#if USE_NEW_PROC_FS_FLAG
+
+ssize_t wmt_dbg_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+ssize_t wmt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos);
+
+static struct file_operations wmt_dbg_fops = {
+    .read = wmt_dbg_read,
+	.write = wmt_dbg_write,
+};
+
+#endif
+
 static INT32 wmt_dbg_psm_ctrl(INT32 par1, INT32 par2, INT32 par3);
 static INT32 wmt_dbg_dsns_ctrl(INT32 par1, INT32 par2, INT32 par3);
 static INT32 wmt_dbg_hwver_get(INT32 par1, INT32 par2, INT32 par3);
@@ -75,7 +73,7 @@ static INT32 wmt_dbg_sdio_ctrl(INT32 par1, INT32 par2, INT32 par3);
 static INT32 wmt_dbg_stp_dbg_ctrl(INT32 par1, INT32 par2, INT32 par3);
 static INT32 wmt_dbg_stp_dbg_log_ctrl(INT32 par1, INT32 par2, INT32 par3);
 static INT32 wmt_dbg_wmt_assert_ctrl(INT32 par1, INT32 par2, INT32 par3);
-
+static INT32 wmt_dbg_stp_trigger_assert(INT32 par1, INT32 par2, INT32 par3);
 
 
 
@@ -104,6 +102,7 @@ const static WMT_DEV_DBG_FUNC wmt_dev_dbg_func[] =
     [0x13] = wmt_dbg_stp_dbg_ctrl,
     [0x14] = wmt_dbg_stp_dbg_log_ctrl,
     [0x15] = wmt_dbg_wmt_assert_ctrl,
+    [0x16] = wmt_dbg_stp_trigger_assert,
 };
 
 INT32 wmt_dbg_psm_ctrl(INT32 par1, INT32 par2, INT32 par3)
@@ -155,6 +154,21 @@ INT32 wmt_dbg_assert_test(INT32 par1, INT32 par2, INT32 par3)
     //par2 = 0:  send assert command
     //par2 != 0: send exception command
         return wmt_dbg_cmd_test_api(0 == par2 ? 0 : 1);
+    } 
+    else if (1 == par3)
+    {
+        //send noack command
+        return wmt_dbg_cmd_test_api(WMTDRV_CMD_NOACK_TEST);
+    }
+    else if (2 == par3)
+    {
+        //warn reset test
+         return wmt_dbg_cmd_test_api(WMTDRV_CMD_WARMRST_TEST);
+    }
+    else if (3 == par3)
+    {
+        //firmware trace test - for soc usage, not used in combo chip
+         return wmt_dbg_cmd_test_api(WMTDRV_CMD_FWTRACE_TEST);
     }
     else
     {
@@ -164,7 +178,7 @@ INT32 wmt_dbg_assert_test(INT32 par1, INT32 par2, INT32 par3)
         do{
             WMT_INFO_FUNC("Send Assert Command per 8 secs!!\n");
             wmt_dbg_cmd_test_api(0);
-            osal_msleep(sec * 1000);
+            osal_sleep_ms(sec * 1000);
         }while(--times);
     }
     return 0;
@@ -198,6 +212,15 @@ INT32 wmt_dbg_cmd_test_api(ENUM_WMTDRV_CMD_T cmd)
         case WMTDRV_CMD_EXCEPTION:
             pOp->op.au4OpData[0] = 1;
         break;
+        case WMTDRV_CMD_NOACK_TEST:
+            pOp->op.au4OpData[0] = 3;
+        break;
+        case WMTDRV_CMD_WARMRST_TEST:
+            pOp->op.au4OpData[0] = 4;
+        break;
+        case WMTDRV_CMD_FWTRACE_TEST:
+            pOp->op.au4OpData[0] = 5;
+        break;
         default:
             if (WMTDRV_CMD_COEXDBG_00 <= cmd && WMTDRV_CMD_COEXDBG_15 >= cmd)
             {
@@ -222,7 +245,11 @@ INT32 wmt_dbg_cmd_test_api(ENUM_WMTDRV_CMD_T cmd)
     }
     bRet = wmt_lib_put_act_op(pOp);
     ENABLE_PSM_MONITOR();
-    if ((cmd != WMTDRV_CMD_ASSERT) && (cmd != WMTDRV_CMD_EXCEPTION))
+    if ((cmd != WMTDRV_CMD_ASSERT) && 
+        (cmd != WMTDRV_CMD_EXCEPTION) && 
+        (cmd != WMTDRV_CMD_NOACK_TEST) && 
+        (cmd != WMTDRV_CMD_WARMRST_TEST) &&
+        (cmd != WMTDRV_CMD_FWTRACE_TEST))
     {
         if (MTK_WCN_BOOL_FALSE == bRet)
         {
@@ -448,6 +475,12 @@ INT32 wmt_dbg_wmt_assert_ctrl(INT32 par1, INT32 par2, INT32 par3)
     return 0;
 }
 
+INT32 wmt_dbg_stp_trigger_assert(INT32 par1, INT32 par2, INT32 par3)
+{
+    wmt_lib_btm_cb(BTM_TRIGGER_STP_ASSERT_OP);
+    return 0;
+}
+
 
 INT32 wmt_dbg_coex_test(INT32 par1, INT32 par2, INT32 par3)
 {
@@ -461,6 +494,84 @@ INT32 wmt_dbg_rst_ctrl(INT32 par1, INT32 par2, INT32 par3)
     mtk_wcn_stp_set_auto_rst(0 == par2 ? 0 : 1);
     return 0;
 }
+
+#if USE_NEW_PROC_FS_FLAG
+ssize_t wmt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+
+	INT32 retval = 0;
+	INT32 i_ret = 0;
+	CHAR *warn_msg = "no data available, please run echo 15 xx > /proc/driver/wmt_psm first\n";
+	
+    if(*f_pos > 0){
+        retval = 0;
+    } else {
+        /*len = sprintf(page, "%d\n", g_psm_enable);*/
+        if ( gCoexBuf.availSize <= 0)
+        {
+            WMT_INFO_FUNC("no data available, please run echo 15 xx > /proc/driver/wmt_psm first\n");
+			retval = osal_strlen(warn_msg) + 1;
+			if (count < retval)
+			{
+				retval = count;
+			}
+			i_ret = copy_to_user(buf, warn_msg, retval);
+	        if (i_ret)
+	        {
+	        	WMT_ERR_FUNC("copy to buffer failed, ret:%d\n", retval);
+	        	retval = -EFAULT;
+	        	goto err_exit;
+	        }
+			*f_pos += retval;
+        }
+        else
+        {
+            INT32 i = 0;
+			INT32 len = 0;
+			CHAR msg_info[128];
+			INT32 max_num = 0;
+            /*we do not check page buffer, because there are only 100 bytes in g_coex_buf, no reason page buffer is not enough, a bomb is placed here on unexpected condition*/
+			
+			WMT_INFO_FUNC("%d bytes avaliable\n", gCoexBuf.availSize);
+			max_num = ((osal_sizeof(msg_info) > count ? osal_sizeof(msg_info) : count) -1) / 5;
+			
+			if (max_num > gCoexBuf.availSize)
+			{
+				max_num = gCoexBuf.availSize;
+			}
+			else
+			{
+				WMT_INFO_FUNC("round to %d bytes due to local buffer size limitation\n", max_num);
+			}
+			
+			
+			for (i = 0; i < max_num; i++)
+            {
+                len += osal_sprintf(msg_info + len, "0x%02x ", gCoexBuf.buffer[i]);
+            }
+			
+			len += osal_sprintf(msg_info + len, "\n");
+			retval = len;
+			
+			i_ret = copy_to_user(buf, msg_info, retval);
+	        if (i_ret)
+	        {
+	        	WMT_ERR_FUNC("copy to buffer failed, ret:%d\n", retval);
+	        	retval = -EFAULT;
+	        	goto err_exit;
+	        }
+			*f_pos += retval;
+            
+        }
+    }
+    gCoexBuf.availSize = 0;
+err_exit:
+
+    return retval;
+}
+
+
+#else
 
 static INT32 wmt_dev_dbg_read(CHAR *page, CHAR **start, off_t off, INT32 count, INT32 *eof, void *data){
     INT32 len = 0;
@@ -488,6 +599,7 @@ static INT32 wmt_dev_dbg_read(CHAR *page, CHAR **start, off_t off, INT32 count, 
     gCoexBuf.availSize = 0;
     return len;
 }
+#endif
 
 INT32 wmt_dbg_ut_test(INT32 par1, INT32 par2, INT32 par3)
 {
@@ -521,6 +633,11 @@ INT32 wmt_dbg_ut_test(INT32 par1, INT32 par2, INT32 par3)
             if(iRet == MTK_WCN_BOOL_FALSE){
                 break;
             }
+			WMT_INFO_FUNC("#### ANT On .... (%d, %d) \n", i, j);
+            iRet = mtk_wcn_wmt_func_on(WMTDRV_TYPE_ANT); 
+            if(iRet == MTK_WCN_BOOL_FALSE){
+                break;
+            }
             WMT_INFO_FUNC("#### BT  Off .... (%d, %d) \n", i, j);
             iRet = mtk_wcn_wmt_func_off(WMTDRV_TYPE_BT); 
             if(iRet == MTK_WCN_BOOL_FALSE){
@@ -541,6 +658,11 @@ INT32 wmt_dbg_ut_test(INT32 par1, INT32 par2, INT32 par3)
             if(iRet == MTK_WCN_BOOL_FALSE){
                 break;
             }
+			WMT_INFO_FUNC("#### ANT  Off ....(%d, %d) \n", i, j);
+            iRet = mtk_wcn_wmt_func_off(WMTDRV_TYPE_ANT);           
+            if(iRet == MTK_WCN_BOOL_FALSE){
+                break;
+            }
         }
         if(iRet == MTK_WCN_BOOL_FALSE){
                 break;
@@ -554,6 +676,70 @@ INT32 wmt_dbg_ut_test(INT32 par1, INT32 par2, INT32 par3)
     return iRet;        
 }
 
+#if USE_NEW_PROC_FS_FLAG
+ssize_t wmt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
+{
+	CHAR buf[256];
+    CHAR *pBuf;
+    ULONG len = count;
+    INT32 x = 0,y = 0, z=0;
+    CHAR *pToken = NULL;
+    CHAR *pDelimiter = " \t";
+
+    WMT_INFO_FUNC("write parameter len = %d\n\r", (INT32)len);
+    if(len >= osal_sizeof(buf)){
+        WMT_ERR_FUNC("input handling fail!\n");
+        len = osal_sizeof(buf) - 1;
+        return -1;
+    }    
+    
+    if(copy_from_user(buf, buffer, len)){
+        return -EFAULT;
+    }
+    buf[len] = '\0';
+    WMT_INFO_FUNC("write parameter data = %s\n\r", buf);
+
+    pBuf = buf;
+    pToken = osal_strsep(&pBuf, pDelimiter);
+    x = NULL != pToken ? osal_strtol(pToken, NULL, 16) : 0; 
+
+    pToken = osal_strsep(&pBuf, "\t\n ");
+    if(pToken != NULL){
+        y = osal_strtol(pToken, NULL, 16);
+        WMT_INFO_FUNC("y = 0x%08x \n\r", y);
+    } else {
+        y = 3000;
+         /*efuse, register read write default value*/
+        if(0x11 == x || 0x12 == x || 0x13 == x) {
+            y = 0x80000000;
+        }
+    }
+
+    pToken = osal_strsep(&pBuf, "\t\n ");
+    if(pToken != NULL){
+        z = osal_strtol(pToken, NULL, 16);
+    } else {
+        z = 10;
+        /*efuse, register read write default value*/
+        if(0x11 == x || 0x12 == x || 0x13 == x) {
+            z = 0xffffffff;
+        }
+    }
+    
+    WMT_INFO_FUNC("x(0x%08x), y(0x%08x), z(0x%08x)\n\r", x, y, z);
+
+    if (osal_array_size(wmt_dev_dbg_func) > x && NULL != wmt_dev_dbg_func[x])
+    {
+        (*wmt_dev_dbg_func[x])(x, y, z);
+    }
+    else
+    {
+        WMT_WARN_FUNC("no handler defined for command id(0x%08x)\n\r", x);
+    }
+    return len;
+}
+
+#else
 
 static INT32 wmt_dev_dbg_write(struct file *file, const CHAR *buffer, ULONG count, void *data){
     
@@ -617,24 +803,44 @@ static INT32 wmt_dev_dbg_write(struct file *file, const CHAR *buffer, ULONG coun
     return len;
 }
 
+#endif
 INT32 wmt_dev_dbg_setup(VOID)
 {
+INT32 i_ret;
+#if USE_NEW_PROC_FS_FLAG
+	gWmtDbgEntry = proc_create(WMT_DBG_PROCNAME, 0664, NULL, &wmt_dbg_fops);
+	if (gWmtDbgEntry == NULL) {
+        WMT_ERR_FUNC("Unable to create / wmt_aee proc entry\n\r");
+        i_ret = -1;
+    }
+#else
+
     gWmtDbgEntry = create_proc_entry(WMT_DBG_PROCNAME, 0664, NULL);
     if(gWmtDbgEntry == NULL){
         WMT_ERR_FUNC("Unable to create /proc entry\n\r");
-        return -1;
+        i_ret = -1;
     }
     gWmtDbgEntry->read_proc = wmt_dev_dbg_read;
     gWmtDbgEntry->write_proc = wmt_dev_dbg_write;
-    return 0;
+#endif
+
+    return i_ret;
 }
 
 INT32 wmt_dev_dbg_remove(VOID)
 {
+#if USE_NEW_PROC_FS_FLAG
+    if (NULL != gWmtDbgEntry)
+    {
+        proc_remove(gWmtDbgEntry);
+    }		
+#else
+
     if (NULL != gWmtDbgEntry)
     {
         remove_proc_entry(WMT_DBG_PROCNAME, NULL);
     }
+#endif
 #if CFG_WMT_PS_SUPPORT
     wmt_lib_ps_deinit();
 #endif

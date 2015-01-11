@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -275,6 +261,7 @@ extern char * osal_strncpy(char *dst, const char *src, UINT32 len);
 extern char * osal_strcat(char *dst, const char *src);
 extern char * osal_strncat(char *dst, const char *src, UINT32 len);
 extern char * osal_strchr(const char *str, UINT8 c);
+extern char *osal_strnstr(char *str1, const char *str2, int n);
 extern char * osal_strsep(char **str, const char *c);
 extern void osal_bug_on(unsigned long val);
 
@@ -294,7 +281,7 @@ extern VOID* osal_memset(VOID *buf, INT32 i, UINT32 len);
 extern VOID* osal_memcpy(VOID *dst, const VOID *src, UINT32 len);
 extern INT32 osal_memcmp(const VOID *buf1, const VOID *buf2, UINT32 len);
 
-extern INT32 osal_msleep(UINT32 ms);
+extern INT32 osal_sleep_ms(UINT32 ms);
 
 extern INT32 osal_timer_create(P_OSAL_TIMER);
 extern INT32 osal_timer_start(P_OSAL_TIMER, UINT32);

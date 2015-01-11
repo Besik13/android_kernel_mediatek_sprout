@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief brief description
 
@@ -45,12 +31,12 @@
 #include "wmt_exp.h"
 #include "wmt_lib.h"
 #include "wmt_conf.h"
-#include "wmt_tm.h"
 #include "psm_core.h"
 #include "stp_core.h"
 #include "stp_exp.h"
 #include "hif_sdio.h"
 #include "wmt_dbg.h"
+#include <linux/device.h>
 
 
 #define MTK_WMT_VERSION  "Combo WMT Driver - v1.0"
@@ -67,6 +53,18 @@ static struct proc_dir_entry *gWmtAeeEntry = NULL;
 static UINT32 g_buf_len = 0;
 static UINT8 *pBuf = NULL;
 static UINT32 passCnt = 0;
+
+
+#if USE_NEW_PROC_FS_FLAG
+ssize_t wmt_aee_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos);
+ssize_t wmt_aee_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+static struct file_operations wmt_aee_fops = {
+    .read = wmt_aee_read,
+	.write = wmt_aee_write,
+};
+#endif
+
+
 #endif
 
 
@@ -98,6 +96,70 @@ UINT32 pAtchNum = 0;
 */
 
 #if CFG_WMT_PROC_FOR_AEE
+
+#if USE_NEW_PROC_FS_FLAG
+ssize_t wmt_aee_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+    INT32 retval = 0;
+	UINT32 len = 0;
+	WMT_INFO_FUNC("%s: count %d pos %lld\n", __func__, count, *f_pos);
+
+	if (0 == *f_pos)
+	{
+		pBuf = wmt_lib_get_cpupcr_xml_format(&len);
+        g_buf_len = len;
+        WMT_INFO_FUNC("wmt_dev:wmt for aee buffer len(%d)\n", g_buf_len);
+	}
+
+    if (g_buf_len >= count) {
+		
+		retval = copy_to_user(buf, pBuf, count);
+        if (retval)
+        {
+        	WMT_ERR_FUNC("copy to aee buffer failed, ret:%d\n", retval);
+        	retval = -EFAULT;
+        	goto err_exit;
+        }
+		
+        *f_pos += count;
+        g_buf_len -= count;
+        pBuf += count;
+        WMT_INFO_FUNC("wmt_dev:after read,wmt for aee buffer len(%d)\n", g_buf_len);
+		
+        retval = count;
+    } else if (0 != g_buf_len){
+    
+		retval = copy_to_user(buf, pBuf, g_buf_len);
+        if (retval)
+        {
+        	WMT_ERR_FUNC("copy to aee buffer failed, ret:%d\n", retval);
+        	retval = -EFAULT;
+        	goto err_exit;
+        }
+		
+        *f_pos += g_buf_len;
+        len = g_buf_len;
+        g_buf_len = 0;
+        pBuf += len;
+        retval = len;
+		WMT_INFO_FUNC("wmt_dev:after read,wmt for aee buffer len(%d)\n", g_buf_len);
+    } else {
+    	WMT_INFO_FUNC("wmt_dev: no data avaliable for aee\n");
+		retval = 0;
+	}
+err_exit:
+	return retval;
+}
+
+
+ssize_t wmt_aee_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	WMT_TRC_FUNC();
+	return 0;
+}
+
+#else
+
 static int wmt_dev_proc_for_aee_read(char *page, char **start, off_t off, int count, int *eof, void *data)
 {
     UINT32 len = 0;
@@ -145,25 +207,44 @@ static int wmt_dev_proc_for_aee_write(struct file *file, const char *buffer, uns
     return 0;
 }
 
+#endif
 
 INT32 wmt_dev_proc_for_aee_setup(VOID)
 {
+	INT32 i_ret = 0;
+#if USE_NEW_PROC_FS_FLAG
+	gWmtAeeEntry = proc_create(WMT_AEE_PROCNAME, 0664, NULL, &wmt_aee_fops);
+	if (gWmtAeeEntry == NULL) {
+        WMT_ERR_FUNC("Unable to create / wmt_aee proc entry\n\r");
+        i_ret = -1;
+    }
+
+#else
+
     gWmtAeeEntry = create_proc_entry(WMT_AEE_PROCNAME, 0664, NULL);
     if (gWmtAeeEntry == NULL) {
         WMT_ERR_FUNC("Unable to create / wmt_aee proc entry\n\r");
-        return -1;
+        i_ret = -1;
     }
     gWmtAeeEntry->read_proc = wmt_dev_proc_for_aee_read;
     gWmtAeeEntry->write_proc = wmt_dev_proc_for_aee_write;
-    return 0;
+#endif
+    return i_ret;
 }
 
 
 INT32 wmt_dev_proc_for_aee_remove(VOID)
 {
+#if USE_NEW_PROC_FS_FLAG
+	if (NULL != gWmtAeeEntry) {
+		proc_remove(gWmtAeeEntry);
+	}
+#else
+
     if (NULL != gWmtAeeEntry) {
         remove_proc_entry(WMT_AEE_PROCNAME, NULL);
     }
+#endif
     return 0;
 }
 #endif  // end of "CFG_WMT_PROC_FOR_AEE"
@@ -416,7 +497,6 @@ MTK_WCN_BOOL wmt_dev_is_file_exist(UCHAR *pFileName)
 
 }
 
-#if  defined(CONFIG_THERMAL) &&  defined(CONFIG_THERMAL_OPEN)
 static unsigned long count_last_access_sdio = 0;    
 static unsigned long count_last_access_uart = 0;
 static unsigned long jiffies_last_poll = 0;
@@ -491,7 +571,7 @@ static UINT32 wmt_dev_tra_uart_poll(void)
 }
 #endif
 
-static INT32 wmt_dev_tm_temp_query(void)
+INT32 wmt_dev_tm_temp_query(void)
 {
     #define HISTORY_NUM       5
     #define TEMP_THRESHOLD   65
@@ -601,38 +681,6 @@ static INT32 wmt_dev_tm_temp_query(void)
     
     return current_temp;
 }
-
-static INT32 wmt_dev_tm_temp_set(int temp)
-{
-   
-    //TODO: now we no export the APIs to external modules
-    //This will affect the performance, so we disable the function temporarily.
-    
-    return 0;
-}
-
-static INT32 wmt_dev_tm_setup(void)
-{
-    static struct wmt_thermal_ctrl_ops thermal_ops;
-    struct wmt_thermal_ctrl_ops *p_thermal_ops = &thermal_ops;
-    
-    p_thermal_ops->query_temp = wmt_dev_tm_temp_query;
-    p_thermal_ops->set_temp = wmt_dev_tm_temp_set;
-
-    wmt_tm_init(p_thermal_ops);
-    wmt_tm_init_rt();
-
-    return 0;
-}
-#else
-//STP-UART will access the symbol, so we keep symbol exist even when CONFIG_THERMAL is not support
-extern INT32 wmt_dev_tra_uart_update(void)
-{          
-    return 0;
-}
-#endif
-
-
 
 ssize_t
 WMT_write (
@@ -1108,7 +1156,7 @@ WMT_unlocked_ioctl (
 			iRet = mtk_wcn_hif_sdio_tell_chipid(arg);
 			#endif
 			
-			if (0x6628 == arg)
+			if (0x6628 == arg || 0x6630 == arg)
 			{
 			    wmt_lib_merge_if_flag_ctrl(1);
 			}
@@ -1181,10 +1229,6 @@ static int WMT_close(struct inode *inode, struct file *file)
     return 0;
 }
 
-ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
-ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
-long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
-
 struct file_operations gWmtFops = {
     .open = WMT_open,
     .release = WMT_close,
@@ -1195,12 +1239,19 @@ struct file_operations gWmtFops = {
     .poll = WMT_poll,
 };
 
+#if REMOVE_MK_NODE
+struct class * wmt_class = NULL;
+#endif
 
 static int WMT_init(void)
 {
     dev_t devID = MKDEV(gWmtMajor, 0);
     INT32 cdevErr = -1;
     INT32 ret = -1;
+#if REMOVE_MK_NODE
+	struct device * wmt_dev = NULL;
+#endif
+
     WMT_INFO_FUNC("WMT Version= %s DATE=%s\n" , MTK_WMT_VERSION, MTK_WMT_DATE);
     WMT_INFO_FUNC("COMBO Driver Version= %s\n" , MTK_COMBO_DRIVER_VERSION);
     /* Prepare a UCHAR device */
@@ -1225,7 +1276,14 @@ static int WMT_init(void)
         goto error;
     }
     WMT_INFO_FUNC("driver(major %d) installed \n", gWmtMajor);
-
+#if REMOVE_MK_NODE
+	wmt_class = class_create(THIS_MODULE,"stpwmt");
+	if(IS_ERR(wmt_class))
+		goto error;
+	wmt_dev = device_create(wmt_class,NULL,devID,NULL,"stpwmt");
+	if(IS_ERR(wmt_dev))
+		goto error;
+	#endif
 
 #if 0
     pWmtDevCtx = wmt_drv_create();
@@ -1262,11 +1320,7 @@ static int WMT_init(void)
 	wmt_dev_proc_for_aee_setup();
 #endif
 
-#if  defined(CONFIG_THERMAL) &&  defined(CONFIG_THERMAL_OPEN)
-    WMT_INFO_FUNC("wmt_dev_tm_setup\n");
-    wmt_dev_tm_setup();
     mtk_wcn_hif_sdio_update_cb_reg(wmt_dev_tra_sdio_update);
-#endif
 
 	gWmtInitDone = 1;
 	wake_up(&gWmtInitWq);
@@ -1279,6 +1333,15 @@ error:
 #if CFG_WMT_DBG_SUPPORT    
     wmt_dev_dbg_remove();
 #endif
+#if REMOVE_MK_NODE
+	if(!IS_ERR(wmt_dev))
+		device_destroy(wmt_class,devID);
+	if(!IS_ERR(wmt_class)){
+		class_destroy(wmt_class);
+		wmt_class = NULL;
+	}
+#endif
+
     if (cdevErr == 0) {
         cdev_del(&gWmtCdev);
     }
@@ -1297,10 +1360,6 @@ static void WMT_exit (void)
 {
     dev_t dev = MKDEV(gWmtMajor, 0);
 
-#if  defined(CONFIG_THERMAL) &&  defined(CONFIG_THERMAL_OPEN)
-		wmt_tm_deinit_rt();
-		wmt_tm_deinit();
-#endif
 
     wmt_lib_deinit();
     
@@ -1315,6 +1374,11 @@ static void WMT_exit (void)
     cdev_del(&gWmtCdev);
     unregister_chrdev_region(dev, WMT_DEV_NUM);
     gWmtMajor = -1;
+#if REMOVE_MK_NODE
+	device_destroy(wmt_class,MKDEV(gWmtMajor, 0) );
+    class_destroy(wmt_class);
+	wmt_class = NULL;
+#endif
 #ifdef MTK_WMT_WAKELOCK_SUPPORT
     WMT_WARN_FUNC("destroy func_on_off_wake_lock\n");
     wake_lock_destroy(&func_on_off_wake_lock);
@@ -1324,9 +1388,27 @@ static void WMT_exit (void)
 
     WMT_INFO_FUNC("done\n");
 }
+#ifdef MTK_WCN_REMOVE_KERNEL_MODULE
 
+int mtk_wcn_combo_common_drv_init(void)
+{
+	return WMT_init();
+
+}
+
+void mtk_wcn_combo_common_drv_exit (void)
+{
+	return WMT_exit();
+}
+
+
+EXPORT_SYMBOL(mtk_wcn_combo_common_drv_init);
+EXPORT_SYMBOL(mtk_wcn_combo_common_drv_exit);
+#else
 module_init(WMT_init);
 module_exit(WMT_exit);
+#endif
+//MODULE_LICENSE("Proprietary");
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("MediaTek Inc WCN");
 MODULE_DESCRIPTION("MTK WCN combo driver for WMT function");

@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*******************************************************************************
 *                E X T E R N A L   R E F E R E N C E S
 ********************************************************************************
@@ -167,7 +153,11 @@ static INT32 mtk_wcn_sys_check_function_status(UINT8 type, UINT8 op){
     return STATUS_OP_INVALID;
 }
 
+#if STP_EXP_HID_API_EXPORT
+INT32 _mtk_wcn_stp_register_if_rx(MTK_WCN_STP_IF_RX func)
+#else
 INT32 mtk_wcn_stp_register_if_rx(MTK_WCN_STP_IF_RX func)
+#endif
 {
     stp_if_rx = func;
 
@@ -184,10 +174,17 @@ VOID mtk_wcn_stp_set_if_tx_type (
         (STP_UART_IF_TX == stp_if_type)? "UART" : ((STP_SDIO_IF_TX == stp_if_type) ? "SDIO" : "NULL"));
 }
 
+#if STP_EXP_HID_API_EXPORT
+INT32 _mtk_wcn_stp_register_if_tx (
+    ENUM_STP_TX_IF_TYPE stp_if,
+    MTK_WCN_STP_IF_TX func
+    )
+#else
 INT32 mtk_wcn_stp_register_if_tx (
     ENUM_STP_TX_IF_TYPE stp_if,
     MTK_WCN_STP_IF_TX func
     )
+#endif
 {
     if (STP_UART_IF_TX == stp_if) 
     {
@@ -206,7 +203,11 @@ INT32 mtk_wcn_stp_register_if_tx (
     return 0;
 }
 
+#if STP_EXP_HID_API_EXPORT
+INT32 _mtk_wcn_stp_register_event_cb(INT32 type, MTK_WCN_STP_EVENT_CB func)
+#else
 INT32 mtk_wcn_stp_register_event_cb(INT32 type, MTK_WCN_STP_EVENT_CB func)
+#endif
 {
     if (type < MTKSTP_MAX_TASK_NUM)
     {
@@ -220,7 +221,11 @@ INT32 mtk_wcn_stp_register_event_cb(INT32 type, MTK_WCN_STP_EVENT_CB func)
     return 0;
 }
 
+#if STP_EXP_HID_API_EXPORT
+INT32 _mtk_wcn_stp_register_tx_event_cb(INT32 type, MTK_WCN_STP_EVENT_CB func)
+#else
 INT32 mtk_wcn_stp_register_tx_event_cb(INT32 type, MTK_WCN_STP_EVENT_CB func)
+#endif
 {
     if(type < MTKSTP_MAX_TASK_NUM)
     {
@@ -249,18 +254,18 @@ INT32 stp_drv_init(VOID)
 #ifdef MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
 	MTK_WCN_STP_EXP_CB_INFO stpExpCb = 
 	{	
-		.stp_send_data_cb		= mtk_wcn_stp_send_data,
-		.stp_send_data_raw_cb	= mtk_wcn_stp_send_data_raw,
-		.stp_parser_data_cb		= mtk_wcn_stp_parser_data,
-		.stp_receive_data_cb	= mtk_wcn_stp_receive_data,
-		.stp_is_rxqueue_empty_cb = mtk_wcn_stp_is_rxqueue_empty,
-		.stp_is_ready_cb		= mtk_wcn_stp_is_ready,
-		.stp_set_bluez_cb		= mtk_wcn_stp_set_bluez,
-		.stp_if_tx_cb			= mtk_wcn_stp_register_if_tx,
-		.stp_if_rx_cb			= mtk_wcn_stp_register_if_rx,
-		.stp_reg_event_cb		= mtk_wcn_stp_register_event_cb,
-		.stp_reg_tx_event_cb	= mtk_wcn_stp_register_tx_event_cb,
-		.stp_coredump_start_get_cb = mtk_wcn_stp_coredump_start_get
+		.stp_send_data_cb		= _mtk_wcn_stp_send_data,
+		.stp_send_data_raw_cb	= _mtk_wcn_stp_send_data_raw,
+		.stp_parser_data_cb		= _mtk_wcn_stp_parser_data,
+		.stp_receive_data_cb	= _mtk_wcn_stp_receive_data,
+		.stp_is_rxqueue_empty_cb = _mtk_wcn_stp_is_rxqueue_empty,
+		.stp_is_ready_cb		= _mtk_wcn_stp_is_ready,
+		.stp_set_bluez_cb		= _mtk_wcn_stp_set_bluez,
+		.stp_if_tx_cb			= _mtk_wcn_stp_register_if_tx,
+		.stp_if_rx_cb			= _mtk_wcn_stp_register_if_rx,
+		.stp_reg_event_cb		= _mtk_wcn_stp_register_event_cb,
+		.stp_reg_tx_event_cb	= _mtk_wcn_stp_register_tx_event_cb,
+		.stp_coredump_start_get_cb = _mtk_wcn_stp_coredump_start_get
 	};
 	mtk_wcn_stp_exp_cb_reg(&stpExpCb);
 

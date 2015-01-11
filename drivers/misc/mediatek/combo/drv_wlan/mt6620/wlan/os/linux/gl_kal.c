@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/gl_kal.c#3 $
 */
 
@@ -699,7 +685,9 @@
 #include "gl_os.h"
 #include "gl_wext.h"
 #include "precomp.h"
-
+#if defined(MTK_TC1_FEATURE_TEMP)
+#include <tc1_partition.h>
+#endif
 /*******************************************************************************
 *                              C O N S T A N T S
 ********************************************************************************
@@ -2962,6 +2950,7 @@ kalRetrieveNetworkAddress(
         UINT_32 i;
         BOOLEAN fgIsReadError = FALSE;
 
+#if !defined(MTK_TC1_FEATURE_TEMP)
         for(i = 0 ; i < MAC_ADDR_LEN ; i+=2) {
             if(kalCfgDataRead16(prGlueInfo,
                         OFFSET_OF(WIFI_CFG_PARAM_STRUCT, aucMacAddress) + i,
@@ -2970,6 +2959,9 @@ kalRetrieveNetworkAddress(
                 break;
             }
         }
+#else
+	TC1_FAC_NAME(FacReadWifiMacAddr)((unsigned char *)prMacAddr);
+#endif
 
         if(fgIsReadError == TRUE) {
             return FALSE;

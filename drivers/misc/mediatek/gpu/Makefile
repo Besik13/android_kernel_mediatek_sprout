@@ -7,4 +7,7 @@ endif
 ifeq ($(CONFIG_ARCH_MT6582), y)
   obj-y += mt6582/
 endif
+ifeq ($(CONFIG_ARCH_MT6589), y)
+  obj-y += mt6589/
+endif
 

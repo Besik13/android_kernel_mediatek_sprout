@@ -6,4 +6,7 @@ endif
 ifeq ($(CONFIG_ARCH_MT6582), y)
   obj-$(CONFIG_MTK_SENSOR_SUPPORT) += mt6582/
 endif
+ifeq ($(CONFIG_ARCH_MT6589), y)
+  obj-$(CONFIG_MTK_SENSOR_SUPPORT) += mt6589/
+endif
 

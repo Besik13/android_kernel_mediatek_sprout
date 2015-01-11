@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: @(#) gl_rst.c@@
 */
 
@@ -104,7 +90,8 @@ enum {
 /*******************************************************************************
 *                            P U B L I C   D A T A
 ********************************************************************************
-*/BOOLEAN fgIsResetting = FALSE;
+*/
+BOOLEAN fgIsResetting = FALSE;
 
 /*******************************************************************************
 *                           P R I V A T E   D A T A
@@ -113,7 +100,7 @@ enum {
 static UINT_32 mtk_wifi_seqnum = 0;
 static int num_bind_process = 0;
 static pid_t bind_pid[MAX_BIND_PROCESS];
-
+static struct work_struct work_rst;
 
 /* attribute policy */
 static struct nla_policy mtk_wifi_genl_policy[MTK_WIFI_ATTR_MAX + 1] = {
@@ -135,9 +122,8 @@ static int mtk_wifi_bind(
     struct genl_info *info
     );
 
-static int mtk_wifi_reset(
-    struct sk_buff *skb,
-    struct genl_info *info
+static void mtk_wifi_reset(
+    struct work_struct *work
     );
 
 /* operation definition */
@@ -148,7 +134,7 @@ static struct genl_ops mtk_wifi_gnl_ops_bind = {
     .doit   = mtk_wifi_bind,
     .dumpit = NULL,
 };
-
+/*
 static struct genl_ops mtk_wifi_gnl_ops_reset = {
     .cmd = MTK_WIFI_COMMAND_RESET,
     .flags  = 0,
@@ -156,8 +142,7 @@ static struct genl_ops mtk_wifi_gnl_ops_reset = {
     .doit   = mtk_wifi_reset,
     .dumpit = NULL,
 };
-
-
+*/
 /*******************************************************************************
 *                                 M A C R O S
 ********************************************************************************
@@ -176,6 +161,12 @@ extern int
 mtk_wcn_wmt_msgcb_unreg(
     ENUM_WMTDRV_TYPE_T eType
     );
+
+extern int
+wifi_reset_start(void);
+
+extern int
+wifi_reset_end(void);
 
 static void *
 glResetCallback (
@@ -225,11 +216,13 @@ glResetInit(
         if(genl_register_ops(&mtk_wifi_gnl_family, &mtk_wifi_gnl_ops_bind) != 0) {
             DBGLOG(INIT, WARN, ("%s(): BIND operation registration fail\n", __func__));
         }
-
+        /*
         if(genl_register_ops(&mtk_wifi_gnl_family, &mtk_wifi_gnl_ops_reset) != 0) {
             DBGLOG(INIT, WARN, ("%s(): RESET operation registration fail\n", __func__));
-        }
+        }*/
     }
+
+    INIT_WORK(&work_rst, mtk_wifi_reset);
 
     return;
 }
@@ -290,12 +283,16 @@ glResetCallback (
 
             switch(*prRstMsg) {
             case WMTRSTMSG_RESET_START:
+                DBGLOG(INIT, WARN, ("Whole chip reset start!\n"));
                 fgIsResetting = TRUE;
-                glResetSendMessage(MTK_WIFI_RESET_START_NAME, MTK_WIFI_COMMAND_RESET);
+                //glResetSendMessage(MTK_WIFI_RESET_START_NAME, MTK_WIFI_COMMAND_RESET);
+                wifi_reset_start();
                 break;
 
             case WMTRSTMSG_RESET_END:
-                glResetSendMessage(MTK_WIFI_RESET_END_NAME, MTK_WIFI_COMMAND_RESET);
+                DBGLOG(INIT, WARN, ("Whole chip reset end!\n"));
+                schedule_work(&work_rst);
+                //glResetSendMessage(MTK_WIFI_RESET_END_NAME, MTK_WIFI_COMMAND_RESET);
                 fgIsResetting = FALSE;
                 break;
 
@@ -303,7 +300,6 @@ glResetCallback (
                 break;
             }
         }
-
         break;
 
     default:
@@ -430,7 +426,7 @@ out:
 
 /*----------------------------------------------------------------------------*/
 /*!
- * @brief This routine is called for reset, shout not happen
+ * @brief This routine is called for wifi reset
  *
  * @param   skb
  *          info
@@ -439,14 +435,12 @@ out:
  *          nonzero
  */
 /*----------------------------------------------------------------------------*/
-int mtk_wifi_reset(
-    struct sk_buff *skb,
-    struct genl_info *info
+void mtk_wifi_reset(
+    struct work_struct *work
     )
 {
-    DBGLOG(INIT, WARN, ("%s(): should not be invoked\n", __func__));
-
-    return 0;
+    wifi_reset_end();
+    return;
 }
 
 

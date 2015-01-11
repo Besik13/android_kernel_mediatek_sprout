@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -107,8 +93,9 @@ INT32 stp_btm_notify_coredump_timeout_wq(MTKSTP_BTM_T *stp_btm);
 INT32 stp_btm_notify_wmt_dmp_wq(MTKSTP_BTM_T *stp_btm);
 INT32 stp_btm_deinit(MTKSTP_BTM_T *stp_btm);
 INT32 stp_btm_reset_btm_wq(MTKSTP_BTM_T *stp_btm);
+INT32 stp_btm_sort_btm_wq(MTKSTP_BTM_T *stp_btm);
 INT32 stp_notify_btm_dump(MTKSTP_BTM_T *stp_btm);
-
+INT32 stp_notify_btm_do_fw_assert(MTKSTP_BTM_T *stp_btm);
 
 
 MTKSTP_BTM_T *stp_btm_init(void);

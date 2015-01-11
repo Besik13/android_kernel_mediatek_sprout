@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -126,7 +112,7 @@ mtk_wcn_wmt_func_ctrl (
             pOp->op.opId,
             pOp->op.au4OpData[0]);
     }
-    else {
+    else{ 
         WMT_INFO_FUNC("OPID(%d) type(%d) ok\n",
             pOp->op.opId,
             pOp->op.au4OpData[0]);
@@ -134,10 +120,18 @@ mtk_wcn_wmt_func_ctrl (
     return bRet;
 }
 
+#if WMT_EXP_HID_API_EXPORT
+MTK_WCN_BOOL
+_mtk_wcn_wmt_func_off (
+    ENUM_WMTDRV_TYPE_T type
+    )
+
+#else
 MTK_WCN_BOOL
 mtk_wcn_wmt_func_off (
     ENUM_WMTDRV_TYPE_T type
     )
+#endif
 {
     MTK_WCN_BOOL ret;        
 
@@ -156,10 +150,18 @@ mtk_wcn_wmt_func_off (
     return ret;
 }
 
+#if WMT_EXP_HID_API_EXPORT
+static MTK_WCN_BOOL
+_mtk_wcn_wmt_func_on (
+    ENUM_WMTDRV_TYPE_T type
+    )
+
+#else
 MTK_WCN_BOOL
 mtk_wcn_wmt_func_on (
     ENUM_WMTDRV_TYPE_T type
     )
+#endif
 {
     MTK_WCN_BOOL ret;    
 
@@ -184,10 +186,17 @@ enable/disable thermal sensor function: true(1)/false(0)
 read thermal sensor function:thermal value
 
 */
+#if WMT_EXP_HID_API_EXPORT
+INT8
+_mtk_wcn_wmt_therm_ctrl (
+    ENUM_WMTTHERM_TYPE_T eType
+    )
+#else
 INT8
 mtk_wcn_wmt_therm_ctrl (
     ENUM_WMTTHERM_TYPE_T eType
     )
+#endif
 {
     P_OSAL_OP pOp;
     P_WMT_OP pOpData;
@@ -251,8 +260,13 @@ mtk_wcn_wmt_therm_ctrl (
     return (INT8)pOpData->au4OpData[1];
 }
 
+#if WMT_EXP_HID_API_EXPORT
+ENUM_WMTHWVER_TYPE_T
+_mtk_wcn_wmt_hwver_get (VOID)
+#else
 ENUM_WMTHWVER_TYPE_T
 mtk_wcn_wmt_hwver_get (VOID)
+#endif
 {
     // TODO: [ChangeFeature][GeorgeKuo] Reconsider usage of this type
     // TODO: how do we extend for new chip and newer revision?
@@ -260,10 +274,17 @@ mtk_wcn_wmt_hwver_get (VOID)
     return wmt_lib_get_icinfo(WMTCHIN_MAPPINGHWVER);
 }
 
+#if WMT_EXP_HID_API_EXPORT
+MTK_WCN_BOOL
+_mtk_wcn_wmt_dsns_ctrl (
+    ENUM_WMTDSNS_TYPE_T eType
+    )
+#else
 MTK_WCN_BOOL
 mtk_wcn_wmt_dsns_ctrl (
     ENUM_WMTDSNS_TYPE_T eType
     )
+#endif
 {
     P_OSAL_OP pOp;
     P_WMT_OP pOpData;
@@ -325,46 +346,82 @@ mtk_wcn_wmt_dsns_ctrl (
     return bRet;
 }
 
+#if WMT_EXP_HID_API_EXPORT
+INT32
+_mtk_wcn_wmt_msgcb_reg (
+    ENUM_WMTDRV_TYPE_T eType,
+    PF_WMT_CB pCb
+    )
+#else
 INT32
 mtk_wcn_wmt_msgcb_reg (
     ENUM_WMTDRV_TYPE_T eType,
     PF_WMT_CB pCb
     )
+#endif
 {
     return (INT32)wmt_lib_msgcb_reg(eType, pCb);
 }
 
+#if WMT_EXP_HID_API_EXPORT
+INT32
+_mtk_wcn_wmt_msgcb_unreg (
+	ENUM_WMTDRV_TYPE_T eType
+	)
+#else
 INT32
 mtk_wcn_wmt_msgcb_unreg (
     ENUM_WMTDRV_TYPE_T eType
     )
+#endif    
 {
     return (INT32)wmt_lib_msgcb_unreg(eType);
 }
 
+#if WMT_EXP_HID_API_EXPORT
+INT32
+_mtk_wcn_stp_wmt_sdio_op_reg (
+    PF_WMT_SDIO_PSOP own_cb
+    )
+#else
 INT32
 mtk_wcn_stp_wmt_sdio_op_reg (
     PF_WMT_SDIO_PSOP own_cb
     )
+#endif
 {
     wmt_lib_ps_set_sdio_psop(own_cb);
     return 0;
 }
 
-
+#if WMT_EXP_HID_API_EXPORT
+INT32 
+_mtk_wcn_stp_wmt_sdio_host_awake(
+    VOID
+    )
+#else
 INT32 
 mtk_wcn_stp_wmt_sdio_host_awake(
     VOID
     )
+#endif
 {    
     wmt_lib_ps_irq_cb();
     return 0;
 }
 
+#if WMT_EXP_HID_API_EXPORT
+MTK_WCN_BOOL _mtk_wcn_wmt_assert (
+	ENUM_WMTDRV_TYPE_T type,
+    UINT32 reason
+    )
+
+#else
 MTK_WCN_BOOL mtk_wcn_wmt_assert (
 	ENUM_WMTDRV_TYPE_T type,
     UINT32 reason
     )
+#endif    
 {
     P_OSAL_OP pOp = NULL;
     MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
@@ -375,6 +432,8 @@ MTK_WCN_BOOL mtk_wcn_wmt_assert (
         WMT_WARN_FUNC("get_free_lxop fail\n");
         return MTK_WCN_BOOL_FALSE;
     }
+	
+	wmt_lib_set_host_assert_info(type,reason,1);
 
     pSignal = &pOp ->signal;
 
@@ -420,16 +479,16 @@ VOID mtk_wcn_wmt_exp_init()
 {
 	MTK_WCN_WMT_EXP_CB_INFO wmtExpCb = {
 		
-	.wmt_func_on_cb				= mtk_wcn_wmt_func_on,
-	.wmt_func_off_cb			= mtk_wcn_wmt_func_off,
-	.wmt_therm_ctrl_cb			= mtk_wcn_wmt_therm_ctrl,
-	.wmt_hwver_get_cb			= mtk_wcn_wmt_hwver_get,
-	.wmt_dsns_ctrl_cb			= mtk_wcn_wmt_dsns_ctrl,
-	.wmt_msgcb_reg_cb			= mtk_wcn_wmt_msgcb_reg,
-	.wmt_msgcb_unreg_cb			= mtk_wcn_wmt_msgcb_unreg,
-	.wmt_sdio_op_reg_cb			= mtk_wcn_stp_wmt_sdio_op_reg,
-	.wmt_sdio_host_awake_cb		= mtk_wcn_stp_wmt_sdio_host_awake,
-	.wmt_assert_cb				= mtk_wcn_wmt_assert
+	.wmt_func_on_cb				= _mtk_wcn_wmt_func_on,
+	.wmt_func_off_cb			= _mtk_wcn_wmt_func_off,
+	.wmt_therm_ctrl_cb			= _mtk_wcn_wmt_therm_ctrl,
+	.wmt_hwver_get_cb			= _mtk_wcn_wmt_hwver_get,
+	.wmt_dsns_ctrl_cb			= _mtk_wcn_wmt_dsns_ctrl,
+	.wmt_msgcb_reg_cb			= _mtk_wcn_wmt_msgcb_reg,
+	.wmt_msgcb_unreg_cb			= _mtk_wcn_wmt_msgcb_unreg,
+	.wmt_sdio_op_reg_cb			= _mtk_wcn_stp_wmt_sdio_op_reg,
+	.wmt_sdio_host_awake_cb		= _mtk_wcn_stp_wmt_sdio_host_awake,
+	.wmt_assert_cb				= _mtk_wcn_wmt_assert
 	};
 
 	mtk_wcn_wmt_exp_cb_reg(&wmtExpCb);
@@ -444,6 +503,98 @@ VOID mtk_wcn_wmt_exp_deinit()
 }
 #endif
 
+/*
+	ctrlId: get ram code status opId or ram code download opId
+	pBuf: pointer to ANT ram code
+	length: total length of ANT ram code
+*/
+
+ENUM_WMT_ANT_RAM_STATUS mtk_wcn_wmt_ant_ram_ctrl (
+    ENUM_WMT_ANT_RAM_CTRL ctrlId, UCHAR *pBuf, UINT32 length, ENUM_WMT_ANT_RAM_SEQ seq
+    )
+{
+	ENUM_WMT_ANT_RAM_STATUS eRet = 0;
+	P_OSAL_OP pOp = NULL;
+    MTK_WCN_BOOL bRet = MTK_WCN_BOOL_FALSE;
+    P_OSAL_SIGNAL pSignal;
+	
+	/*1. parameter validation check*/
+	/*for WMT_ANT_RAM_GET_STATUS, ignore pBuf and length*/
+	/*for WMT_ANT_RAM_DOWNLOAD, 
+		pBuf must not be NULL, kernel space memory pointer
+		length must be large than 0*/
+
+	if ((WMT_ANT_RAM_GET_STATUS > ctrlId) || (WMT_ANT_RAM_CTRL_MAX <= ctrlId))
+	{
+		WMT_ERR_FUNC ("error ctrlId:%d detected.\n", ctrlId);
+		eRet = WMT_ANT_RAM_PARA_ERR;
+		return eRet;
+	}
+
+	if ((WMT_ANT_RAM_DOWNLOAD == ctrlId) &&\
+		((NULL == pBuf) ||\
+		(0 >= length) || \
+		(1000 < length) || \
+		(seq >= WMT_ANT_RAM_SEQ_MAX) || \
+		(seq < WMT_ANT_RAM_START_PKT)))
+	{
+		eRet = WMT_ANT_RAM_PARA_ERR;
+		WMT_ERR_FUNC ("error parameter detected, ctrlId:%d, pBuf:0x%08x,length(0x%x),seq(%d) .\n", ctrlId, pBuf, length, seq);
+		return eRet;
+	}
+	/*get WMT opId */
+    pOp  = wmt_lib_get_free_op();
+    if (!pOp ) {
+        WMT_WARN_FUNC("get_free_lxop fail\n");
+        return MTK_WCN_BOOL_FALSE;
+    }
+
+    pSignal = &pOp ->signal;
+	pSignal->timeoutValue= (WMT_ANT_RAM_DOWNLOAD == ctrlId) ? MAX_FUNC_ON_TIME : MAX_EACH_WMT_CMD;
+
+    pOp ->op.opId = (WMT_ANT_RAM_DOWNLOAD == ctrlId) ? WMT_OPID_ANT_RAM_DOWN : WMT_OPID_ANT_RAM_STA_GET;
+	pOp ->op.au4OpData[0] = (UINT32)pBuf;
+	pOp ->op.au4OpData[1] = length;
+	pOp ->op.au4OpData[2] = seq;
+
+	
+	/*disable PSM monitor*/
+    if (DISABLE_PSM_MONITOR()) {
+        WMT_ERR_FUNC("wake up failed\n");
+        wmt_lib_put_op_to_free_queue(pOp);
+        return MTK_WCN_BOOL_FALSE;
+    }
+    /*wakeup wmtd thread*/
+    bRet = wmt_lib_put_act_op(pOp);
+
+	/*enable PSM monitor*/
+    ENABLE_PSM_MONITOR();
+
+    WMT_INFO_FUNC("CMD_TEST, opid (%d), ret(%d),retVal(%d) result(%s)\n", \
+    pOp->op.opId, \
+    bRet, \
+    pOp->op.au4OpData[2], \
+    MTK_WCN_BOOL_FALSE == bRet ? "failed" : "succeed"\
+    );
+
+	/*check return value and return result*/
+	if (MTK_WCN_BOOL_FALSE == bRet)
+	{
+		eRet = WMT_ANT_RAM_OP_ERR;
+	}
+	else
+	{
+		eRet = (WMT_ANT_RAM_DOWNLOAD == ctrlId) ? \
+			WMT_ANT_RAM_DOWN_OK : \
+			((1 == pOp->op.au4OpData[2]) ? WMT_ANT_RAM_EXIST : WMT_ANT_RAM_NOT_EXIST);
+	}
+
+	return eRet;
+	
+}
+
+EXPORT_SYMBOL(mtk_wcn_wmt_ant_ram_ctrl);
+
 #ifndef MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
 
 EXPORT_SYMBOL(mtk_wcn_wmt_assert);
@@ -456,6 +607,8 @@ EXPORT_SYMBOL(mtk_wcn_wmt_hwver_get);
 EXPORT_SYMBOL(mtk_wcn_wmt_therm_ctrl);
 EXPORT_SYMBOL(mtk_wcn_wmt_func_on);
 EXPORT_SYMBOL(mtk_wcn_wmt_func_off);
+
+
 #if !(DELETE_HIF_SDIO_CHRDEV)
 EXPORT_SYMBOL(mtk_wcn_wmt_chipid_query);
 #endif

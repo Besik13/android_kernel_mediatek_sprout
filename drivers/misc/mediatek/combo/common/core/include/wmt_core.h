@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -45,6 +31,13 @@
 #else
 #define CFG_CORE_MT6628_SUPPORT 1 /* whether MT6628 is supported or not */
 #endif
+
+#if defined(MT6630)
+#define CFG_CORE_MT6630_SUPPORT 1 /* whether MT6630 is supported or not */
+#else
+#define CFG_CORE_MT6630_SUPPORT 1 /* whether MT6630 is supported or not */
+#endif
+
 
 // TODO:[ChangeFeature][George] move this definition outside so that wmt_dev can remove wmt_core.h inclusion.
 #define defaultPatchName "mt66xx_patch_hdr.bin"
@@ -151,6 +144,8 @@ typedef enum _ENUM_WMT_OPID_T {
     WMT_OPID_SDIO_CTRL = 18,
     WMT_OPID_FW_COREDMP = 19,
     WMT_OPID_GPIO_STATE = 20,
+	WMT_OPID_ANT_RAM_DOWN = 21,
+    WMT_OPID_ANT_RAM_STA_GET = 22,
     WMT_OPID_MAX
 } ENUM_WMT_OPID_T, *P_ENUM_WMT_OPID_T;
 
@@ -255,7 +250,7 @@ typedef enum _WMT_IC_PIN_STATE_
     WMT_IC_PIN_MUX = 6,
     WMT_IC_PIN_GPIO = 7,
     WMT_IC_PIN_GPIO_HIGH = 8,
-    WMT_IC_PIN_GPIO_LOW = 8,
+    WMT_IC_PIN_GPIO_LOW = 9,
     WMT_IC_PIN_STATE_MAX
 } WMT_IC_PIN_STATE, *P_WMT_IC_PIN_STATE;
 
@@ -274,6 +269,7 @@ typedef INT32 (*IC_VER_CHECK)(VOID);
 typedef INT32 (*CO_CLOCK_CTRL)(WMT_CO_CLOCK on);
 typedef MTK_WCN_BOOL(*IS_QUICK_SLEEP_SUPPORT)(VOID);
 typedef MTK_WCN_BOOL(*IS_AEE_DUMP_SUPPORT)(VOID);
+typedef MTK_WCN_BOOL(*TRIGGER_STP_ASSERT)(VOID);
 
 
 typedef struct _WMT_IC_OPS_ {
@@ -285,6 +281,7 @@ typedef struct _WMT_IC_OPS_ {
 	CO_CLOCK_CTRL co_clock_ctrl;
 	IS_QUICK_SLEEP_SUPPORT is_quick_sleep;
 	IS_AEE_DUMP_SUPPORT is_aee_dump_support;
+	TRIGGER_STP_ASSERT trigger_stp_assert;
 } WMT_IC_OPS, *P_WMT_IC_OPS;
 
 typedef struct _WMT_CTX_
@@ -444,6 +441,7 @@ wmt_core_tx (
 extern MTK_WCN_BOOL wmt_core_is_quick_ps_support (void);
 
 extern MTK_WCN_BOOL wmt_core_get_aee_dump_flag(void);
+extern MTK_WCN_BOOL wmt_core_trigger_stp_assert(void);
 
 
 /*******************************************************************************

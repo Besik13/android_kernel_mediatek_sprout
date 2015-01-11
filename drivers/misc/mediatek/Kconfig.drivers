@@ -1,7 +1,7 @@
 menu "Drivers Configurations"
 menuconfig MTK_LDVT
         bool "LDVT"
-        depends on ARCH_MT6572 || ARCH_MT6582
+        depends on ARCH_MT6572 || ARCH_MT6582 || ARCH_MT6589
         default n
         ---help---
           Say Y here for supporting LDVT
@@ -107,7 +107,13 @@ config MTK_ACCDET_LOW_POWER
         default y
         depends on MTK_ACCDET_EINT
 
-
+# Bluetooth Related TODO refine?
+config MTK_BT_NET_DEV # BT_NET_DEV
+        bool "Bluetooth network device (for DUN/PAN)"
+        ---help---
+          This is the virtual network driver for bluetooth DUN and PAN. It can be
+          used to forward ip packets to external network driver. Say Y or N.
+          
 # CCCI TODO refine
 menuconfig MTK_CCCI_DEVICES # CCCI_DEVICES TODO Depends on ARCH_MT6573 --> no body use it, should be delete?
         bool "CCCI Devices"
@@ -250,6 +256,20 @@ config MTK_FB_EVB_USE_HVGA_LCM # FB_MT6516_EVB_USE_HVGA_LCM
         ---help---
           Use MagnaChip TA7601 HVGA LCM on EVB
 
+menuconfig GPS
+        tristate "GPS drivers"
+        default y
+        ---help---
+          Say Y here for supporting GPS.
+
+if GPS
+config MTK_GPS # MT6516_GPS --> TODO should change to use modulized settings!
+        tristate "MediaTek 3326 GPS driver"
+        default y
+        ---help---
+          MT3326 GPS driver
+endif # GPS
+
 config MTK_M4U_SUPPORT
 	bool "MTK_M4U_SUPPORT"
 	help
@@ -257,6 +277,8 @@ config MTK_M4U_SUPPORT
 	   continuous memory. yes: multimedia HW can access non-physical-
 	   continuous memory directly. no: multimedia HW can only access
 	   physical continuous memory just like other common HW DMA.
+
+
 
 config MTK_DITHERING_SUPPORT
 	bool "MTK_DITHERING_SUPPORT"
@@ -268,19 +290,20 @@ config MTK_DITHERING_SUPPORT
 
 config MTK_LCM_PHYSICAL_ROTATION
 	string "MTK_LCM_PHYSICAL_ROTATION"
+	default "0"
 	help
 	   To set the angle between dimension of UI layout and LCM scan
 	   direction
 
 config LCM_WIDTH
 	string "LCM resolution width"
-	default "1280"
+	default "854"
 	help
 	   To set LCM resolution width size
 
 config LCM_HEIGHT
 	string "LCM resolution height"
-	default "800"
+	default "480"
 	help
 	   To set LCM resolution height size
 
@@ -555,23 +578,23 @@ config MTK_WFD_SUPPORT
 	   yes/no
 
 ## I2C Bus
-#config MTK_I2C #I2C_MT6516 I2C_MT6573
-#        tristate "MediaTek I2C adapter"
-#        depends on I2C
-#        default y
-#        ---help---
-#          This selects the MediaTek(R) Integrated Inter Circuit bus driver.
-#          If you want to use MediaTek(R) I2C interface, say Y or M here.
-#          If unsure, say N.
+config MTK_I2C #I2C_MT6516 I2C_MT6573
+        tristate "MediaTek I2C adapter"
+        depends on I2C
+        default y
+        ---help---
+          This selects the MediaTek(R) Integrated Inter Circuit bus driver.
+          If you want to use MediaTek(R) I2C interface, say Y or M here.
+          If unsure, say N.
 
 ##SPI
-#config MTK_SPI 
-#        tristate "MediaTek SPI controller"
-#        depends on SPI
-#        default y
-#        ---help---
-#          This selects the MediaTek(R) SPI bus driver.
-#          If you want to use MediaTek(R) SPI interface, say Y or M here.  If unsure, say N.
+config MTK_SPI 
+        tristate "MediaTek SPI controller"
+        depends on SPI
+        default y
+        ---help---
+          This selects the MediaTek(R) SPI bus driver.
+          If you want to use MediaTek(R) SPI interface, say Y or M here.  If unsure, say N.
 
 # CMMB
 config MTK_CMMB
@@ -628,22 +651,22 @@ config LEDS_LM3639
         default n
 
 # SGX Config
-config PVR_SGX_MT6572
+config PVR_SGX_MT6589
         tristate "PowerVR SGX support"
-        depends on ARCH_MT6572
+        depends on ARCH_MT6589
         default m
         ---help---
           Enable this option to build support for the PowerVR SGX 3D core.
 
 choice
         prompt "PowerVR build type"
-        depends on PVR_SGX_MT6572
-        default PVR_BUILD_RELEASE_MT6572
+        depends on PVR_SGX_MT6589
+        default PVR_BUILD_RELEASE_MT6589
 
-config PVR_BUILD_RELEASE_MT6572
+config PVR_BUILD_RELEASE_MT6589
         bool "Release"
 
-config PVR_BUILD_DEBUG_MT6572
+config PVR_BUILD_DEBUG_MT6589
         bool "Debug"
 
 endchoice

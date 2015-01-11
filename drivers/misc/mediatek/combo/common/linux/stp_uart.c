@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include <linux/version.h>
 #include <linux/module.h>
 
@@ -58,7 +44,7 @@
 #define MAX_PACKET_ALLOWED                2000
 
 
-unsigned int gDbgLevel = UART_LOG_INFO;
+static unsigned int gDbgLevel = UART_LOG_INFO;
 
 #define UART_DBG_FUNC(fmt, arg...)    if(gDbgLevel >= UART_LOG_DBG){  printk(KERN_DEBUG PFX "%s: "  fmt, __FUNCTION__ ,##arg);}
 #define UART_INFO_FUNC(fmt, arg...)   if(gDbgLevel >= UART_LOG_INFO){ printk(PFX "%s: "  fmt, __FUNCTION__ ,##arg);}
@@ -198,7 +184,11 @@ static int stp_uart_tty_open(struct tty_struct *tty)
     UART_DBG_FUNC("stp_uart_tty_opentty: %p\n", tty);
 
     tty->receive_room = 65536;
-    tty->low_latency = 1;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
+	tty->port->low_latency = 1;
+#else
+	tty->low_latency = 1;
+#endif
 
     /* Flush any pending characters in the driver and line discipline. */
 
@@ -674,8 +664,13 @@ static int stp_uart_tty_ioctl(struct tty_struct *tty, struct file * file,
 
     switch (cmd) {
     case HCIUARTSETPROTO:
-            UART_DBG_FUNC("<!!> Set low_latency to TRUE <!!>\n");
-            tty->low_latency = 1;
+		UART_DBG_FUNC("<!!> Set low_latency to TRUE <!!>\n");
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
+		tty->port->low_latency = 1;
+#else
+		tty->low_latency = 1;
+#endif
+
         break;
     default:
         UART_DBG_FUNC("<!!> n_tty_ioctl_helper <!!>\n");
@@ -814,7 +809,7 @@ INT32  mtk_wcn_uart_tx(const UINT8 *data, const UINT32 size, UINT32 *written_siz
     return 0;
 }
 
-static int __init mtk_wcn_stp_uart_init(void)
+static int mtk_wcn_stp_uart_init(void)
 {
     static struct tty_ldisc_ops stp_uart_ldisc;
     int err;
@@ -911,7 +906,7 @@ init_err:
 
 }
 
-static void __exit mtk_wcn_stp_uart_exit(void)
+static void mtk_wcn_stp_uart_exit(void)
 {
     int err;
 
@@ -944,8 +939,30 @@ static void __exit mtk_wcn_stp_uart_exit(void)
     return;
 }
 
+#ifdef MTK_WCN_REMOVE_KERNEL_MODULE
+
+int mtk_wcn_stp_uart_drv_init(void)
+{
+	return mtk_wcn_stp_uart_init();
+
+}
+
+void mtk_wcn_stp_uart_drv_exit (void)
+{
+	return mtk_wcn_stp_uart_exit();
+}
+
+
+EXPORT_SYMBOL(mtk_wcn_stp_uart_drv_init);
+EXPORT_SYMBOL(mtk_wcn_stp_uart_drv_exit);
+#else
+
 module_init(mtk_wcn_stp_uart_init);
 module_exit(mtk_wcn_stp_uart_exit);
+
+#endif
+
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("MediaTek Inc WCN_SE_CS3");

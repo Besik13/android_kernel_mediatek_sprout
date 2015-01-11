@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/nic/hal.h#1 $
 */
 
@@ -156,7 +142,7 @@
             if (kalDevRegRead(_prAdapter->prGlueInfo, _u4Offset, _pu4Value) == FALSE) {\
                 HAL_SET_FLAG(_prAdapter, ADAPTER_FLAG_HW_ERR); \
                 fgIsBusAccessFailed = TRUE; \
-                DBGLOG(HAL, ERROR, ("HAL_MCR_RD access fail! 0x%x: 0x%x \n", _u4Offset, *_pu4Value)); \
+                DBGLOG(HAL, ERROR, ("HAL_MCR_RD access fail! 0x%x: 0x%lx \n", _u4Offset, *_pu4Value)); \
             } \
         } else { \
             DBGLOG(HAL, WARN, ("ignore HAL_MCR_RD access! 0x%x\n", _u4Offset)); \
@@ -172,10 +158,10 @@
             if (kalDevRegWrite(_prAdapter->prGlueInfo, _u4Offset, _u4Value) == FALSE) {\
                 HAL_SET_FLAG(_prAdapter, ADAPTER_FLAG_HW_ERR); \
                 fgIsBusAccessFailed = TRUE; \
-                DBGLOG(HAL, ERROR, ("HAL_MCR_WR access fail! 0x%x: 0x%x \n", _u4Offset, _u4Value)); \
+                DBGLOG(HAL, ERROR, ("HAL_MCR_WR access fail! 0x%x: 0x%lx \n", _u4Offset, _u4Value)); \
             } \
         } else { \
-            DBGLOG(HAL, WARN, ("ignore HAL_MCR_WR access! 0x%x: 0x%x \n", _u4Offset, _u4Value)); \
+            DBGLOG(HAL, WARN, ("ignore HAL_MCR_WR access! 0x%x: 0x%lx \n", _u4Offset, _u4Value)); \
         } \
      }
 

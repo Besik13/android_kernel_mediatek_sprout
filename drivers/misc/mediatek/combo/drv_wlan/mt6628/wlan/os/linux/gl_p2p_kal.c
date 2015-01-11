@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: @(#) gl_p2p_cfg80211.c@@
 */
 
@@ -1210,7 +1196,11 @@ kalP2PIndicateBssInfo (
 
 
         /* Return this structure. */
-        cfg80211_put_bss(prCfg80211Bss);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
+            cfg80211_put_bss(prGlueP2pInfo->wdev.wiphy, prCfg80211Bss);
+#else
+			cfg80211_put_bss(prCfg80211Bss);
+#endif
 
     } while (FALSE);
 
@@ -1233,7 +1223,7 @@ kalP2PIndicateMgmtTxStatus (
         if ((prGlueInfo == NULL) ||
                 (pucFrameBuf == NULL) ||
                 (u4FrameLen == 0)) {
-            DBGLOG(P2P, TRACE, ("Unexpected pointer PARAM. 0x%lx, 0x%lx, %ld.", prGlueInfo, pucFrameBuf, u4FrameLen));
+            DBGLOG(P2P, TRACE, ("Unexpected pointer PARAM. 0x%p, 0x%p, %lu", prGlueInfo, pucFrameBuf, u4FrameLen));
             ASSERT(FALSE);
             break;
         }

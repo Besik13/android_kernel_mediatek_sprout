@@ -1,5 +1,6 @@
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 #CONFIG_MTK_CCCI_DRIVER :=m
+ifneq ($(CONFIG_MTK_PLATFORM),"mt6589")
 ifeq ($(CONFIG_MTK_CCCI_EXT), y)
 
 #include $(MTK_ROOT_BUILD)/Makefile
@@ -53,4 +54,7 @@ else
 obj- :=dummy.o
 
 
+endif
+else
+obj-y += dual_ccci_6589/
 endif

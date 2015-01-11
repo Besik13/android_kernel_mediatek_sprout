@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -26,6 +12,7 @@
 #include <mach/mtk_wcn_cmb_stub.h>
 #include "osal.h"
 #include "wmt_stp_exp.h"
+
 //not to reference to internal wmt
 //#include "wmt_core.h"
 /*******************************************************************************
@@ -83,11 +70,12 @@ typedef enum _ENUM_WMTDRV_TYPE_T {
     WMTDRV_TYPE_GPS = 2,
     WMTDRV_TYPE_WIFI = 3,
     WMTDRV_TYPE_WMT = 4,
-    WMTDRV_TYPE_STP = 5,
-    WMTDRV_TYPE_SDIO1 = 6,
-    WMTDRV_TYPE_SDIO2 = 7,
-    WMTDRV_TYPE_LPBK = 8,
-    WMTDRV_TYPE_COREDUMP = 9,
+    WMTDRV_TYPE_ANT = 5,
+    WMTDRV_TYPE_STP = 6,
+    WMTDRV_TYPE_SDIO1 = 7,
+    WMTDRV_TYPE_SDIO2 = 8,
+    WMTDRV_TYPE_LPBK = 9,
+    WMTDRV_TYPE_COREDUMP = 10,
     WMTDRV_TYPE_MAX
 } ENUM_WMTDRV_TYPE_T, *P_ENUM_WMTDRV_TYPE_T;
 
@@ -183,6 +171,33 @@ typedef enum {
 } WMT_SDIO_FUNC_TYPE;
 #endif
 
+
+typedef enum _ENUM_WMT_ANT_RAM_CTRL_T{
+    WMT_ANT_RAM_GET_STATUS = 0,
+	WMT_ANT_RAM_DOWNLOAD = WMT_ANT_RAM_GET_STATUS + 1,
+	WMT_ANT_RAM_CTRL_MAX
+}ENUM_WMT_ANT_RAM_CTRL, *P_ENUM_WMT_ANT_RAM_CTRL;
+
+typedef enum _ENUM_WMT_ANT_RAM_SEQ_T{
+    WMT_ANT_RAM_START_PKT = 1,
+	WMT_ANT_RAM_CONTINUE_PKT = WMT_ANT_RAM_START_PKT + 1,
+	WMT_ANT_RAM_END_PKT = WMT_ANT_RAM_CONTINUE_PKT + 1,
+	WMT_ANT_RAM_SEQ_MAX
+}ENUM_WMT_ANT_RAM_SEQ, *P_ENUM_WMT_ANT_RAM_SEQ;
+
+
+typedef enum _ENUM_WMT_ANT_RAM_STATUS_T{
+    WMT_ANT_RAM_NOT_EXIST = 0,
+	WMT_ANT_RAM_EXIST = WMT_ANT_RAM_NOT_EXIST + 1,
+	WMT_ANT_RAM_DOWN_OK = WMT_ANT_RAM_EXIST + 1,
+	WMT_ANT_RAM_DOWN_FAIL = WMT_ANT_RAM_DOWN_OK + 1,
+	WMT_ANT_RAM_PARA_ERR = WMT_ANT_RAM_DOWN_FAIL + 1,
+	WMT_ANT_RAM_OP_ERR = WMT_ANT_RAM_PARA_ERR + 1,
+	WMT_ANT_RAM_MAX
+}ENUM_WMT_ANT_RAM_STATUS, *P_ENUM_WMT_ANT_RAM_STATUS;
+
+
+
 /*******************************************************************************
 *                            P U B L I C   D A T A
 ********************************************************************************
@@ -201,6 +216,9 @@ typedef enum {
 *                  F U N C T I O N   D E C L A R A T I O N S
 ********************************************************************************
 */
+#ifndef MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
+#define WMT_EXP_HID_API_EXPORT 0
+
 /*subsystem function ctrl APIs*/
 extern MTK_WCN_BOOL
 mtk_wcn_wmt_func_off (
@@ -256,6 +274,10 @@ mtk_wcn_wmt_hwver_get (VOID);
 extern INT32
 mtk_wcn_wmt_chipid_query (VOID);
 
+#else
+#define WMT_EXP_HID_API_EXPORT 1
+
+#endif
 
 extern INT32 wmt_lib_set_aif (
     CMB_STUB_AIF_X aif,
@@ -263,6 +285,11 @@ extern INT32 wmt_lib_set_aif (
     ); /* set AUDIO interface options */
 extern VOID
 wmt_lib_ps_irq_cb(VOID);
+
+extern ENUM_WMT_ANT_RAM_STATUS mtk_wcn_wmt_ant_ram_ctrl (
+    ENUM_WMT_ANT_RAM_CTRL ctrlId, UCHAR *pBuf, UINT32 length, ENUM_WMT_ANT_RAM_SEQ seq
+    );
+
 
 #ifdef MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
 extern VOID mtk_wcn_wmt_exp_init(VOID);

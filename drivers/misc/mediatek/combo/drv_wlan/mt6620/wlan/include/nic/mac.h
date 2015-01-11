@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/nic/mac.h#1 $
 */
 
@@ -830,7 +816,7 @@
 
 
 /* 7.3.2.25 RSN information element */
-#define ELEM_MAX_LEN_WPA                            24 /* one pairwise, one AKM suite, one PMKID */
+#define ELEM_MAX_LEN_WPA                            34 /* one pairwise, one AKM suite, one PMKID */
 #define ELEM_MAX_LEN_RSN                            38 /* one pairwise, one AKM suite, one PMKID */
 #define ELEM_MAX_LEN_WAPI                           38 /* one pairwise, one AKM suite, one BKID */
 #define ELEM_MAX_LEN_WSC                            200/* one pairwise, one AKM suite, one BKID */

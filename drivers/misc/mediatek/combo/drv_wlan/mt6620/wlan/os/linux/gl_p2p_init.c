@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: @(#) gl_p2p_init.c@@
 */
 
@@ -176,16 +162,16 @@ static void wlanP2PEarlySuspend(void)
             if (!in_dev)
                return;
             
-            rtnl_lock();
+            //rtnl_lock();
             if(!in_dev->ifa_list ||!in_dev->ifa_list->ifa_local) {
-                   rtnl_unlock();
+                   //rtnl_unlock();
                    in_dev_put(in_dev);
                    DBGLOG(INIT, INFO, ("ip is not avaliable.\n"));
                    return;
            }
             // <4> copy the IPv4 address
             kalMemCopy(ip, &(in_dev->ifa_list->ifa_local), sizeof(ip));
-            rtnl_unlock();
+            //rtnl_unlock();
             in_dev_put(in_dev);
              
             printk(KERN_INFO"ip is %d.%d.%d.%d\n",
@@ -214,6 +200,7 @@ static void wlanP2PEarlySuspend(void)
     }
 
 #if defined(CONFIG_IPV6) && defined( ENABLE_IPV6_WLAN)
+#if 0
     // <5> get the IPv6 address
     if(!prDev || !(prDev->ip6_ptr)||\
         !((struct in_device *)(prDev->ip6_ptr))->ifa_list||\
@@ -238,6 +225,45 @@ static void wlanP2PEarlySuspend(void)
          (ip6[4] == 0) &&
          (ip6[5] == 0))) {
     }
+#else
+    {
+	struct inet6_dev *in6_dev = NULL;
+	
+	in6_dev = in6_dev_get(prDev);
+		if (!in6_dev)
+	    return;
+	
+	//rtnl_lock();
+	if(!in6_dev->ac_list ||!in6_dev->ac_list->aca_addr.s6_addr16){
+		//rtnl_unlock();
+			in6_dev_put(in6_dev);
+		DBGLOG(INIT, INFO, ("ipv6 is not avaliable.\n"));
+		return;
+	}
+	// <4> copy the IPv6 address
+	kalMemCopy(ip6, in6_dev->ac_list->aca_addr.s6_addr16, sizeof(ip6));
+	//rtnl_unlock();
+		in6_dev_put(in6_dev);
+
+	DBGLOG(INIT, INFO, ("ipv6 is %d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d\n",
+		ip6[0],ip6[1],ip6[2],ip6[3],
+		ip6[4],ip6[5],ip6[6],ip6[7],
+		ip6[8],ip6[9],ip6[10],ip6[11],
+		ip6[12],ip6[13],ip6[14],ip6[15]
+		));
+	
+	// todo: traverse between list to find whole sets of IPv6 addresses
+	if (!((ip6[0] == 0) &&
+		(ip6[1] == 0) &&
+		(ip6[2] == 0) &&
+		(ip6[3] == 0) &&
+		(ip6[4] == 0) &&
+		(ip6[5] == 0))) {
+		u4NumIPv6++;
+	}
+
+     }
+#endif
 
 #endif
     // <7> set up the ARP filter
@@ -301,6 +327,7 @@ static void wlanP2PEarlySuspend(void)
             printk(KERN_INFO DRV_NAME"set HW pattern filter fail 0x%lx\n", rStatus);
         }
     }
+	return;
 }
 
 
@@ -310,7 +337,7 @@ static void wlanP2PLateResume(void)
     struct net_device *prDev = NULL;
     P_GLUE_INFO_T prGlueInfo = NULL;
     UINT_8  ip[4] = { 0 };
-#if defined(CONFIG_IPV6) && defined(ENABLE_IPV6_WLAN)
+#if defined(CONFIG_IPV6) && defined(ENABLE_IPV6_WLAN)// no meaning in case of resume, defined(CONFIG_IPV6)
     UINT_8  ip6[16] = { 0 };     // FIX ME: avoid to allocate large memory in stack
 #endif
 
@@ -331,16 +358,16 @@ static void wlanP2PLateResume(void)
       if (!in_dev)
          return;
       
-      rtnl_lock();
+      //rtnl_lock();
       if(!in_dev->ifa_list ||!in_dev->ifa_list->ifa_local) {
-             rtnl_unlock();
+             //rtnl_unlock();
              in_dev_put(in_dev);
              DBGLOG(INIT, INFO, ("ip is not avaliable.\n"));
              return;
      }
       // <4> copy the IPv4 address
       kalMemCopy(ip, &(in_dev->ifa_list->ifa_local), sizeof(ip));
-      rtnl_unlock();
+      //rtnl_unlock();
       in_dev_put(in_dev);           
      
       printk(KERN_INFO"ip is %d.%d.%d.%d\n",
@@ -360,7 +387,8 @@ static void wlanP2PLateResume(void)
             ip[0],ip[1],ip[2],ip[3]);
 #endif
 
-#if defined(CONFIG_IPV6) && defined(ENABLE_IPV6_WLAN)
+#if 0// no meaning in case of resume, defined(CONFIG_IPV6)
+#if 0
     // <5> get the IPv6 address
     if(!prDev || !(prDev->ip6_ptr)||\
         !((struct in_device *)(prDev->ip6_ptr))->ifa_list||\
@@ -376,6 +404,27 @@ static void wlanP2PLateResume(void)
             ip6[8],ip6[9],ip6[10],ip6[11],
             ip6[12],ip6[13],ip6[14],ip6[15]
             );
+#else
+    {
+	struct inet6_dev *in6_dev = NULL;
+	
+	in6_dev = in6_dev_get(prDev);
+		if (!in6_dev)
+	    return;
+	
+	//rtnl_lock();
+	if(!in6_dev->ac_list ||!in6_dev->ac_list->aca_addr.s6_addr16){
+		//rtnl_unlock();
+			in6_dev_put(in6_dev);
+		DBGLOG(INIT, INFO, ("ipv6 is not avaliable.\n"));
+		return;
+	}
+
+	//rtnl_unlock();
+		in6_dev_put(in6_dev);
+     }
+#endif
+			
 #endif
     // <7> clear the ARP filter
     {

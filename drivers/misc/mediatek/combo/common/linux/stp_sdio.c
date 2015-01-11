@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: $
 */
 
@@ -155,6 +141,9 @@ static const MTK_WCN_HIF_SDIO_FUNCINFO mtk_stp_sdio_id_tbl[] = {
 
     /* MT6628 */ /* Not an SDIO standard class device */
     { MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x6628, 2, STP_SDIO_BLK_SIZE) }, /* 2-function */
+    
+    /* MT6630 */ /* Not an SDIO standard class device */
+    { MTK_WCN_HIF_SDIO_FUNC(0x037A, 0x6630, 2, STP_SDIO_BLK_SIZE) }, /* 2-function */
     { /* end: all zeroes */ },
 };
 
@@ -184,16 +173,43 @@ UINT32 g_stp_sdio_host_count;
 static struct proc_dir_entry *gStpSdioRxDbgEntry = NULL;
 static INT32 stp_sdio_rxdbg_cnt;
 static struct stp_sdio_rxdbg stp_sdio_rxdbg_buffer[STP_SDIO_RXDBG_COUNT];
+
+#if USE_NEW_PROC_FS_FLAG
+ssize_t stp_sdio_rxdbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos);
+ssize_t stp_sdio_rxdbg_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+static struct file_operations stp_sdio_rxdbg_fops = {
+    .read = stp_sdio_rxdbg_read,
+	.write = stp_sdio_rxdbg_write,
+};
 #endif
 
+#endif
 #if STP_SDIO_DBG_SUPPORT && STP_SDIO_OWNBACKDBG
 #define STP_SDIO_OWNDBG_PROCNAME "driver/stp_sdio_own"
 static struct proc_dir_entry *gStpSdioOwnEntry = NULL;
+#if USE_NEW_PROC_FS_FLAG
+ssize_t stp_sdio_own_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos);
+ssize_t stp_sdio_own_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+static struct file_operations stp_sdio_own_fops = {
+    .read = stp_sdio_own_read,
+	.write = stp_sdio_own_write,
+};
 #endif
 
+#endif
 #if STP_SDIO_DBG_SUPPORT && (STP_SDIO_TXDBG || STP_SDIO_TXPERFDBG)
 #define STP_SDIO_TXDBG_PROCNAME "driver/stp_sdio_txdbg"
 static struct proc_dir_entry *gStpSdioTxDbgEntry = NULL;
+
+#if USE_NEW_PROC_FS_FLAG
+ssize_t stp_sdio_txdbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos);
+ssize_t stp_sdio_txdbg_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos);
+static struct file_operations stp_sdio_txdbg_fops = {
+    .read = stp_sdio_txdbg_read,
+	.write = stp_sdio_txdbg_write,
+};
+#endif
+
 
 #if STP_SDIO_TXDBG
 static INT32 stp_sdio_txdbg_cnt;
@@ -661,6 +677,7 @@ static void stp_sdio_tx_rx_handling(void *pData)
     UINT32 chlcpr_value = 0;
     UINT32 tx_comp = 0;
     MTK_WCN_HIF_SDIO_CLTCTX clt_ctx;
+	UINT32 while_loop_counter = 0;
 
     STPSDIO_INFO_FUNC("stp_tx_rx_thread start running...\n");
     if (NULL == pInfo)
@@ -672,6 +689,8 @@ static void stp_sdio_tx_rx_handling(void *pData)
     STPSDIO_INFO_FUNC("stp_tx_rx_thread runns\n");
     while (!osal_thread_should_stop(&pInfo->tx_rx_thread))
     {
+    	while_loop_counter++;
+		
         //<0> get CHLPCR information
         if (OWN_SET == stp_sdio_get_own_state())
         {
@@ -694,7 +713,9 @@ static void stp_sdio_tx_rx_handling(void *pData)
         }
         if ((0 != pInfo->irq_pending) && (1 == pInfo->awake_flag))
         {
-
+			while_loop_counter = 0;
+			
+			pInfo->irq_pending = 0;
             //<1> get CHISR information
             iRet = mtk_wcn_hif_sdio_readl(clt_ctx, CHISR, &chisr);
             if (iRet) {
@@ -702,8 +723,15 @@ static void stp_sdio_tx_rx_handling(void *pData)
                 // TODO: error handling!
                 STPSDIO_ERR_FUNC("get CHISR information rx error!\n");
             }
-            STPSDIO_DBG_FUNC("CHISR(0x%08x)\n", chisr);
-            pInfo->irq_pending = 0;
+			if (0 != pInfo->dump_flag)
+			{
+				STPSDIO_ERR_FUNC("CHISR(0x%08x)\n", chisr);
+			}
+			else
+			{
+            	STPSDIO_DBG_FUNC("CHISR(0x%08x)\n", chisr);
+			}
+            
             if (0x0 == chisr)
             {
                 STPSDIO_ERR_FUNC("******CHISR == 0*****\n");
@@ -713,9 +741,7 @@ static void stp_sdio_tx_rx_handling(void *pData)
                 STPSDIO_HINT_FUNC("FW_OWN_BACK_INT\n");
             }
             if ( chisr & RX_DONE ) {
-                //STPSDIO_INFO_FUNC("RX_DONE_INT\n");
-
-                //TODO: [FixMe][George] testing...
+                //STPSDIO_INFO_FUNC("RX_DONE_INT\n");				
                 if (pInfo->rx_pkt_len) {
                     STPSDIO_ERR_FUNC("rx worker is not finished yet!\n");
                 }
@@ -746,6 +772,7 @@ static void stp_sdio_tx_rx_handling(void *pData)
 
             //<4> handle Tx interrupt
             if ( (chisr & TX_EMPTY) || (chisr & TX_UNDER_THOLD) ) {
+				while_loop_counter = 0;
                 STPSDIO_DBG_FUNC("Tx interrupt\n");
                 /* get complete count */
                 tx_comp = (chisr & TX_COMPLETE_COUNT) >> 4;
@@ -770,7 +797,7 @@ static void stp_sdio_tx_rx_handling(void *pData)
 
         /*Enable IRQ*/
         /*Disable Common interrupt output in CHLPCR */
-            STPSDIO_DBG_FUNC("enable COM IRQ\n");
+        STPSDIO_DBG_FUNC("enable COM IRQ\n");
 //need to wait for the ownback completion
 /* [COHEC_00006052] SW work-around solution:
    using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
@@ -784,6 +811,7 @@ static void stp_sdio_tx_rx_handling(void *pData)
         }
         else
         {
+        	STPSDIO_HINT_FUNC("enable COM IRQ \n");
             iRet = mtk_wcn_hif_sdio_readl(clt_ctx, CHLPCR, &chlcpr_value);
             if (iRet) {
                 STPSDIO_ERR_FUNC("read CHLPCR fail. iRet:%d\n", iRet);
@@ -792,17 +820,17 @@ static void stp_sdio_tx_rx_handling(void *pData)
             {
                 if (chlcpr_value & C_FW_INT_EN_SET)
                 {
-                    STPSDIO_DBG_FUNC("enable COM IRQ okay (0x%x)\n", chlcpr_value);
+                    STPSDIO_HINT_FUNC("enable COM IRQ okay (0x%x)\n", chlcpr_value);
 
                     /* INTR_STATUS CHECK */
-                    /*
+                    /* 
                     iRet = mtk_wcn_hif_sdio_writel(clt_ctx, CHCR, 0x00000002); // W1C
 
                     iRet = mtk_wcn_hif_sdio_readl(clt_ctx, CHISR, &chisr);
                     STPSDIO_INFO_FUNC("Query CHISR(0x%08x)\n", chisr);
 
                     iRet = mtk_wcn_hif_sdio_writel(clt_ctx, CHCR, 0x00000000); // W1C
-                    */
+                   */
                 }
                 #if 0
                 else
@@ -813,13 +841,14 @@ static void stp_sdio_tx_rx_handling(void *pData)
             }
 
         }
-        if ((0 != pInfo->awake_flag) && (0 != pInfo->wakeup_flag))
+        if ((0 != pInfo->wakeup_flag) && (0 != pInfo->awake_flag))
         {
+        	while_loop_counter = 0;
             STPSDIO_INFO_FUNC("clr firmware own! (wakeup) ok\n");
             pInfo->wakeup_flag = 0;
             osal_raise_signal(&pInfo->isr_check_complete);
         }
-        if (//(0 != pInfo->sleep_flag ) && (0 == pInfo->wakeup_flag) &&
+        if ((0 != pInfo->sleep_flag ) && (0 == pInfo->wakeup_flag) &&
             mtk_wcn_stp_is_ready()
             && (0 == pInfo->irq_pending)
             &&(0 == pInfo->firmware_info.tx_packet_num)
@@ -831,6 +860,7 @@ static void stp_sdio_tx_rx_handling(void *pData)
             //STPSDIO_INFO_FUNC("set firmware own! (sleeping)\n");
 /* [COHEC_00006052] SW work-around solution:
    using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
+   			while_loop_counter = 0;
 #if COHEC_00006052
             iRet = mtk_wcn_hif_sdio_writeb(clt_ctx, (UINT32)(CHLPCR + 0x01), (UINT8)(C_FW_OWN_REQ_SET>>8));
 #else
@@ -849,10 +879,11 @@ static void stp_sdio_tx_rx_handling(void *pData)
                 {
                     if (!(chlcpr_value & C_FW_COM_DRV_OWN))
                     {
+                    	while_loop_counter = 0;
                         STPSDIO_INFO_FUNC("set firmware own! (sleeping) ok\n");
                         pInfo->awake_flag = 0;
-                        //pInfo->sleep_flag = 0;
-                        //osal_raise_signal(&pInfo->isr_check_complete);
+                        pInfo->sleep_flag = 0;
+                        osal_raise_signal(&pInfo->isr_check_complete);
                     }
                     else
                     {
@@ -872,12 +903,41 @@ static void stp_sdio_tx_rx_handling(void *pData)
         }
         else
         {
-            STPSDIO_INFO_FUNC("sleeping check fail. stp_is_ready(%d) irq_pending(%d) tx_packet_num(%d) rx_pkt_len(%d)\n",
-                mtk_wcn_stp_is_ready(),
-                pInfo->irq_pending,
-                pInfo->firmware_info.tx_packet_num,
-                pInfo->rx_pkt_len);
+			#if 0
+			iRet = mtk_wcn_hif_sdio_readl(clt_ctx, CHISR, &chisr);
+            if (iRet) {
+                 //4       <1.1> get CHISR Rx error handling
+                // TODO: error handling!
+                STPSDIO_ERR_FUNC("get CHISR information rx error!\n");
+            }
+            STPSDIO_HINT_FUNC("CHISR(0x%08x)\n", chisr);
+			#endif
         }
+		if (100 < while_loop_counter)
+		{
+			while_loop_counter = 0;
+			pInfo->dump_flag = 1;
+			
+			STPSDIO_INFO_FUNC("sleeping check result. stp_is_ready(%d) irq_pending(%d) tx_packet_num(%d) rx_pkt_len(%d)\n",
+	                mtk_wcn_stp_is_ready(),
+	                pInfo->irq_pending,
+	                pInfo->firmware_info.tx_packet_num,
+	                pInfo->rx_pkt_len);
+			/*make fake irq flag to dump CHISR information*/
+			pInfo->irq_pending = 1;
+			
+			if ((0 != pInfo->sleep_flag) || (0 != pInfo->wakeup_flag))
+			{
+				/*clear wakeup/sleep pending flag, wakeup wmtd thread*/
+				pInfo->wakeup_flag = 0;
+				pInfo->sleep_flag = 0;
+				osal_raise_signal(&pInfo->isr_check_complete);
+			}
+		}
+		else
+		{
+			pInfo->dump_flag = 0;
+		}
         osal_wait_for_event(&pInfo->tx_rx_event, _stp_sdio_wait_for_msg, (void *)pInfo);
         //Read Packet from Firmware until firmware rx packet empty
         STPSDIO_DBG_FUNC("stp_tx_rx_thread receive signal\n");
@@ -1993,8 +2053,8 @@ stp_sdio_irq (
     UINT32 tx_comp;
     INT32 ret;
 
-    STPSDIO_LOUD_FUNC("enter\n");
-
+    //STPSDIO_LOUD_FUNC("enter\n");
+	STPSDIO_LOUD_FUNC("enter\n");
     /*
     p_priv = mtk_wcn_hif_sdio_get_drvdata(clt_ctx);
     // TODO:[FixMe][George] do sanity check!
@@ -2027,7 +2087,7 @@ stp_sdio_irq (
         //4 <1.1> get CHISR Rx error handling
         // TODO: error handling!
         STPSDIO_ERR_FUNC("get CHISR information rx error!\n");
-        osal_msleep(20);
+        osal_sleep_ms(20);
         ret = mtk_wcn_hif_sdio_readl(clt_ctx, CHISR, &chisr);
         if (ret)
         {
@@ -2309,7 +2369,8 @@ using CMD52 write instead of CMD53 write for CCIR, CHLPCR, CSDIOCSR */
         goto out;
     }
 #endif
-
+    //4 <4.0> enable irq flag in HIF-SDIO
+    mtk_wcn_hif_sdio_enable_irq(clt_ctx, MTK_WCN_BOOL_TRUE);
     //4 <4> enabling all host interrupt except abnormal ones
     //ret = mtk_wcn_hif_sdio_writel(clt_ctx, CHIER, (CHISR_EN_15_7|CHISR_EN_3_0));  /* enable CHISR interrupt output */
     ret = mtk_wcn_hif_sdio_writel(clt_ctx, CHIER, (FIRMWARE_INT|TX_FIFO_OVERFLOW| \
@@ -2393,7 +2454,8 @@ stp_sdio_remove (
         STPSDIO_ERR_FUNC("sdio_cltctx(%d) not found\n", clt_ctx);
         return -1;
     }
-
+    //4 <0> disable irq flag in HIF-SDIO
+    mtk_wcn_hif_sdio_enable_irq(clt_ctx, MTK_WCN_BOOL_FALSE);
     //4 <1> unregister if_tx() function
     mtk_wcn_stp_register_if_tx(STP_SDIO_IF_TX, NULL);
 
@@ -2424,6 +2486,50 @@ stp_sdio_remove (
 }
 
 #if STP_SDIO_DBG_SUPPORT && STP_SDIO_RXDBG
+
+#if USE_NEW_PROC_FS_FLAG
+ssize_t stp_sdio_rxdbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+	UINT32 idx;
+    UINT32 i;
+    UINT32 j;
+    PUINT8 pbuf;
+    UINT32 len;
+
+    if (*f_pos > 0) {
+        return 0;
+    }
+
+    for (i = 0; i < STP_SDIO_RXDBG_COUNT; ++i) {
+        idx = (stp_sdio_rxdbg_cnt - 1 - i) & STP_SDIO_TXDBG_COUNT_MASK;
+        len = stp_sdio_rxdbg_buffer[idx].bus_rxlen;
+        if (0 == len) {
+            printk(KERN_INFO DFT_TAG "idx(0x%x) 0 == len dump skip\n", stp_sdio_rxdbg_cnt);
+        }
+        printk(KERN_INFO DFT_TAG "idx(0x%x) chisr_rxlen(%d) bus_rxlen(%d) ts(%d)\n",
+            stp_sdio_rxdbg_cnt, stp_sdio_rxdbg_buffer[idx].chisr_rxlen, len, stp_sdio_rxdbg_buffer[idx].ts);
+        for (j = 0; j < STP_SDIO_RX_BUF_SIZE && j < len; j += 16) {
+            pbuf = &stp_sdio_rxdbg_buffer[idx].rx_pkt_buf[j];
+            printk(KERN_INFO DFT_TAG "[0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x   0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x]\n",
+                pbuf[0], pbuf[1], pbuf[2], pbuf[3], pbuf[4], pbuf[5], pbuf[6], pbuf[7],
+                pbuf[8], pbuf[9], pbuf[10], pbuf[11], pbuf[12], pbuf[13], pbuf[14], pbuf[15]);
+            msleep(10);
+        }
+        printk(KERN_INFO DFT_TAG "dump ok\n");
+    }
+
+	return 0;
+}
+ssize_t stp_sdio_rxdbg_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	ULONG len = count;
+    printk(KERN_INFO DFT_TAG"write parameter len = %d\n\r", (int)len);
+	
+    return len;	
+}
+
+#else
+
 /*!
  * \brief /proc debug read interface and dump rx dbg information
  *
@@ -2491,6 +2597,7 @@ stp_sdio_rxdbg_write (
     printk(KERN_INFO DFT_TAG"write parameter len = %d\n\r", (int)len);
     return len;
 }
+#endif
 
 /*!
  * \brief /proc initial procedures. Initialize global debugging information.
@@ -2504,7 +2611,15 @@ stp_sdio_rxdbg_setup(VOID)
 {
     stp_sdio_rxdbg_cnt = 0;
 
-    gStpSdioRxDbgEntry = create_proc_entry(STP_SDIO_RXDBG_PROCNAME, 0666, NULL);
+#if USE_NEW_PROC_FS_FLAG
+	gStpSdioRxDbgEntry = proc_create(STP_SDIO_RXDBG_PROCNAME, 0644, NULL, &stp_sdio_rxdbg_fops);
+	if (gStpSdioRxDbgEntry == NULL){
+		printk(KERN_WARNING DFT_TAG "Unable to create /proc entry\n\r");
+		return -1;
+	}
+
+#else
+    gStpSdioRxDbgEntry = create_proc_entry(STP_SDIO_RXDBG_PROCNAME, 0644, NULL);
     if (gStpSdioRxDbgEntry == NULL){
         printk(KERN_WARNING DFT_TAG"Unable to create /proc entry\n\r");
         return -1;
@@ -2513,7 +2628,7 @@ stp_sdio_rxdbg_setup(VOID)
     gStpSdioRxDbgEntry->write_proc = stp_sdio_rxdbg_write;
 
     printk(KERN_INFO DFT_TAG "Create /proc entry succeed\n\r");
-
+#endif
 
     return 0;
 }
@@ -2528,9 +2643,16 @@ stp_sdio_rxdbg_setup(VOID)
 INT32
 stp_sdio_rxdbg_remove(VOID)
 {
+#if USE_NEW_PROC_FS_FLAG
+	if (NULL != gStpSdioRxDbgEntry) {
+        proc_remove(gStpSdioRxDbgEntry);
+    }		
+#else
+
     if (NULL != gStpSdioRxDbgEntry) {
         remove_proc_entry(STP_SDIO_RXDBG_PROCNAME, NULL);
     }
+#endif
     return 0;
 }
 #endif
@@ -2661,6 +2783,26 @@ static void stp_sdio_txdbg_dump(void)
     #endif /* end of STP_SDIO_TXDBG */
 }
 
+#if USE_NEW_PROC_FS_FLAG
+ssize_t stp_sdio_txdbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+	if (*f_pos > 0){
+        return 0;
+    }
+
+    stp_sdio_txdbg_dump();
+    stp_sdio_txperf_dump();
+    return 0;
+}
+ssize_t stp_sdio_txdbg_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+    ULONG len = count;
+    printk(KERN_INFO DFT_TAG"write parameter len = %d\n\r", (int)len);
+    return len;	
+}
+
+#else
+
 /*!
  * \brief /proc debug read interface and dump tx dbg information
  *
@@ -2706,6 +2848,24 @@ stp_sdio_txdbg_write (
     printk(KERN_INFO DFT_TAG"write parameter len = %d\n\r", (int)len);
     return len;
 }
+#endif
+
+
+
+#if USE_NEW_PROC_FS_FLAG
+
+
+ssize_t stp_sdio_own_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+    if (*f_pos > 0){
+        return 0;
+    }
+
+    return 0;
+
+}
+
+#else
 
 /*!
  * \brief /proc debug read interface and dump tx dbg information
@@ -2730,6 +2890,7 @@ stp_sdio_owndbg_read (
 
     return 0;
 }
+#endif
 
 /*!
  * \brief /proc debug write interface. do nothing.
@@ -2738,6 +2899,9 @@ stp_sdio_owndbg_read (
  *
  * \retval 0 success
  */
+#if USE_NEW_PROC_FS_FLAG
+ssize_t stp_sdio_own_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
+#else
 static int
 stp_sdio_owndbg_write (
     struct file *file,
@@ -2745,6 +2909,7 @@ stp_sdio_owndbg_write (
     unsigned long count,
     void *data
     )
+#endif
 {
     ULONG len = count;
     CHAR* pBuf = NULL;
@@ -2816,7 +2981,15 @@ stp_sdio_owndbg_write (
 INT32
 stp_sdio_txdbg_setup(VOID)
 {
-    gStpSdioTxDbgEntry = create_proc_entry(STP_SDIO_TXDBG_PROCNAME, 0666, NULL);
+#if USE_NEW_PROC_FS_FLAG
+	gStpSdioTxDbgEntry = proc_create(STP_SDIO_TXDBG_PROCNAME, 0644, NULL, &stp_sdio_txdbg_fops);
+    if (gStpSdioTxDbgEntry == NULL){
+        printk(KERN_WARNING DFT_TAG "Unable to create /proc entry\n\r");
+        return -1;
+    }
+#else
+
+    gStpSdioTxDbgEntry = create_proc_entry(STP_SDIO_TXDBG_PROCNAME, 0644, NULL);
     if (gStpSdioTxDbgEntry == NULL){
         printk(KERN_WARNING DFT_TAG"Unable to create /proc entry\n\r");
         return -1;
@@ -2825,6 +2998,7 @@ stp_sdio_txdbg_setup(VOID)
     gStpSdioTxDbgEntry->write_proc = stp_sdio_txdbg_write;
 
     printk(KERN_WARNING DFT_TAG"Unable to create /proc entry\n\r");
+#endif
 
 #if STP_SDIO_TXPERFDBG
     stp_sdio_txperf_worker_cnt = 0;
@@ -2854,9 +3028,18 @@ stp_sdio_txdbg_setup(VOID)
 INT32
 stp_sdio_txdbg_remove(VOID)
 {
+
+#if USE_NEW_PROC_FS_FLAG
+	if (NULL != gStpSdioTxDbgEntry) {
+		proc_remove(gStpSdioTxDbgEntry);
+	}
+
+#else
+
     if (NULL != gStpSdioTxDbgEntry) {
         remove_proc_entry(STP_SDIO_TXDBG_PROCNAME, NULL);
     }
+#endif
     return 0;
 }
 
@@ -2874,7 +3057,15 @@ stp_sdio_txdbg_remove(VOID)
 INT32
 stp_sdio_owndbg_setup(VOID)
 {
-    gStpSdioOwnEntry = create_proc_entry(STP_SDIO_OWNDBG_PROCNAME, 0660, NULL);
+#if USE_NEW_PROC_FS_FLAG
+	gStpSdioOwnEntry = proc_create(STP_SDIO_OWNDBG_PROCNAME, 0644, NULL, &stp_sdio_own_fops);
+    if (gStpSdioOwnEntry == NULL){
+        printk(KERN_WARNING DFT_TAG "Unable to create /proc entry\n\r");
+        return -1;
+    }
+#else
+
+    gStpSdioOwnEntry = create_proc_entry(STP_SDIO_OWNDBG_PROCNAME, 0644, NULL);
     if (gStpSdioOwnEntry == NULL){
         printk(KERN_WARNING DFT_TAG"Unable to create /proc entry\n\r");
         return -1;
@@ -2883,6 +3074,7 @@ stp_sdio_owndbg_setup(VOID)
     gStpSdioOwnEntry->write_proc = stp_sdio_owndbg_write;
 
     printk(KERN_WARNING DFT_TAG"Unable to create /proc entry\n\r");
+#endif
     return 0;
 }
 
@@ -2898,9 +3090,16 @@ stp_sdio_owndbg_setup(VOID)
 INT32
 stp_sdio_owndbg_remove(VOID)
 {
+#if USE_NEW_PROC_FS_FLAG
+	if (NULL != gStpSdioOwnEntry) {
+        proc_remove(gStpSdioOwnEntry);
+    }	
+#else
+
     if (NULL != gStpSdioOwnEntry) {
         remove_proc_entry(STP_SDIO_OWNDBG_PROCNAME, NULL);
     }
+#endif
     return 0;
 }
 #endif
@@ -2912,8 +3111,7 @@ stp_sdio_owndbg_remove(VOID)
  *
  * \retval
  */
-static int __init
-stp_sdio_init (void)
+static int stp_sdio_init (void)
 {
     int ret;
     int i;
@@ -2979,8 +3177,7 @@ stp_sdio_init (void)
  *
  * \retval
  */
-static void __exit
-stp_sdio_exit (void)
+static void stp_sdio_exit (void)
 {
     STPSDIO_LOUD_FUNC("start \n");
 
@@ -3019,6 +3216,28 @@ stp_sdio_exit (void)
     return;
 }
 
+
+
+#ifdef MTK_WCN_REMOVE_KERNEL_MODULE
+	
+int mtk_wcn_stp_sdio_drv_init(void)
+{
+	return stp_sdio_init();
+
+}
+
+void mtk_wcn_stp_sdio_drv_exit (void)
+{
+	return stp_sdio_exit();
+}
+
+
+EXPORT_SYMBOL(mtk_wcn_stp_sdio_drv_init);
+EXPORT_SYMBOL(mtk_wcn_stp_sdio_drv_exit);
+#else
+	
 module_init(stp_sdio_init);
 module_exit(stp_sdio_exit);
+	
+#endif
 

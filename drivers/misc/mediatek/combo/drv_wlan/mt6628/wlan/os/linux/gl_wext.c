@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/gl_wext.c#3 $
 */
 
@@ -3258,7 +3244,7 @@ wext_set_auth (
 */
 /*----------------------------------------------------------------------------*/
 #if CFG_SUPPORT_WAPI
-    UINT_8 keyStructBuf[320];   /* add/remove key shared buffer */
+    UINT_8 keyStructBuf[1024];   /* add/remove key shared buffer */
 #else
     UINT_8 keyStructBuf[100];   /* add/remove key shared buffer */
 #endif
@@ -3334,7 +3320,7 @@ wext_set_encode_ext (
 
         /* PN */
         memcpy(prWpiKey->aucPN, prIWEncExt->tx_seq, IW_ENCODE_SEQ_MAX_SIZE);
-        memcpy(&prWpiKey->aucPN[IW_ENCODE_SEQ_MAX_SIZE], prIWEncExt->rx_seq, IW_ENCODE_SEQ_MAX_SIZE);
+		memcpy(prWpiKey->aucPN + IW_ENCODE_SEQ_MAX_SIZE, prIWEncExt->rx_seq, IW_ENCODE_SEQ_MAX_SIZE);
 
         /* BSSID */
         memcpy(prWpiKey->aucAddrIndex, prIWEncExt->addr.sa_data, 6);

@@ -4,16 +4,14 @@ menu "Kernel Configurations"
 menu "Tracer Related"
 config MTK_SCHED_TRACERS
 	bool "MTK Sched Tracers"
-	depends on TRACING
 	select CONTEXT_SWITCH_TRACER
-        default n
+        select GENERIC_TRACER
         help
            Trace context swicth, set_scheduler, Interrupt Handler
 
 config MTK_KERNEL_MARKER
         bool "MTK Kernel Marker API"
-        depends on TRACING && KALLSYMS
-        default n
+        depends on TRACING
         help
             Mark the user-defined points, such as systrace events in
             user space, to visualize via systrace html files
@@ -30,7 +28,6 @@ config MT65XX_TRACER
         bool "MT65XX Tracer"
         select CONTEXT_SWITCH_TRACER
         select GENERIC_TRACER
-        default n
 
 config GENERIC_TRACER
         bool "Scheduler Switch Tracer"
@@ -51,9 +48,14 @@ config MTK_MET_PLF
       The platform module of MTK MET profiling tool
 
 endmenu
-
+ 
 endmenu
 
+config MTK_NET_LOGGING
+       bool "support mtk_net logging"
+       default n
+       help
+      
 menu "MTPROF tools"
 
 config MTK_MUTATION
@@ -83,6 +85,16 @@ config MTK_AEE_AED
 config MTK_AEE_IPANIC
         tristate "Enable AEE Kernel Panic Dump"
         default y
+
+config MTK_AEE_KDUMP
+        tristate "Include memory Dump"
+        default y
+
+config MTK_AEE_POWERKEY_HANG_DETECT
+       bool "powerkey monitor"
+       default n
+       depends on MTK_AEE_FEATURE
+       
 config MTK_AEE_MRDUMP
        tristate "Enable AEE RAMDUMP support"
        default n
@@ -240,6 +252,11 @@ config MTK_HIBERNATION
         default y
         help
 
+config MTK_FORCE_CPU_89T
+        bool "Support MTK CPU turbo mode"
+       default n
+       help
+       
 config MT_PRIO_TRACER
        bool "Record priority changes"
        default n

@@ -1,5 +1,4 @@
 # only support 6628 currently, do not support on-binary
-ifeq ($(CONFIG_MTK_WLAN_CHIP),"MT6628")
 # ---------------------------------------------------
 # Compile Options
 # ---------------------------------------------------
@@ -9,6 +8,5 @@ ifeq ($(CONFIG_MTK_WLAN_CHIP),"MT6628")
 # Directory List
 # ---------------------------------------------------
 	mtk_wifi_loopback-objs  := fw_download.o mt6628-core.o
-endif
 
 

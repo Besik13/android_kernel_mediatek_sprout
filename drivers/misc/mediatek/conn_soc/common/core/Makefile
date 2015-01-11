@@ -1,11 +1,12 @@
 ifeq ($(CONFIG_MTK_COMBO), y)
+include $(srctree)/drivers/misc/mediatek/Makefile.custom
 ccflags-y += -I$(src)/../linux/include \
 						 -I$(src)/../linux/pri/include \
 						 -I$(src)/../core/include \
 						 -I$(src)/../include \
 						 -I$(src)/ \
 						 -I$(src)/../../../btif/inc \
-						 -I$(src)/../../../common_detect
+						 -I$(src)/../../../common_detect/$(MTK_PLATFORM)
 						 
 ccflags-y += -I$(MTK_CUSTOM_PATH)/kernel/drivers/eemcs/
 ccflags-y += -I$(MTK_CUSTOM_PATH)/kernel/drivers/conn_md/include

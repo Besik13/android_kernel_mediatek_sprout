@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include "precomp.h"
 
 #ifdef __GNUC__
@@ -2289,6 +2275,8 @@ p2pFuncParseBeaconContent (
                                 (u2SubTypeVersion == VERSION_WPA)) {
                             kalP2PSetCipher(prAdapter->prGlueInfo, IW_AUTH_CIPHER_TKIP);
                             ucNewSecMode = TRUE;
+                            kalMemCopy(prP2pSpecificBssInfo->aucWpaIeBuffer, pucIE, IE_SIZE(pucIE));
+                            prP2pSpecificBssInfo->u2WpaIeLen = IE_SIZE(pucIE);
                         }
                         else if ((ucOuiType == VENDOR_OUI_TYPE_WPS)) {
                             kalP2PUpdateWSC_IE(prAdapter->prGlueInfo, 0, pucIE, IE_SIZE(pucIE));
@@ -3907,6 +3895,8 @@ WLAN_STATUS wfdChangeMediaState(
 #if CFG_SUPPORT_WFD
 
 	P_WFD_CFG_SETTINGS_T prWfdCfgSettings = (P_WFD_CFG_SETTINGS_T)NULL;
+	if (prAdapter->fgIsP2PRegistered == FALSE)
+		return WLAN_STATUS_SUCCESS;
     prWfdCfgSettings = &prAdapter->rWifiVar.prP2pFsmInfo->rWfdConfigureSettings;
 
     if ((prWfdCfgSettings->ucWfdEnable) &&

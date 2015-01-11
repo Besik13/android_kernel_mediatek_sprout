@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/include/gl_cfg80211.h#1 $
 */
 
@@ -273,7 +259,9 @@ mtk_cfg80211_remain_on_channel (
     struct wireless_dev *wdev,
 #endif
     struct ieee80211_channel *chan,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0) 
     enum nl80211_channel_type channel_type,
+#endif
     unsigned int duration,
     u64 *cookie
     );

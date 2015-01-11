@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/os/linux/gl_wext_priv.c#4 $
 */
 
@@ -860,7 +846,7 @@ priv_set_int (
 
     case PRIV_CUSTOM_BWCS_CMD:
 
-        DBGLOG(REQ, INFO, ("pu4IntBuf[1] = %x, size of PTA_IPC_T = %d.\n", pu4IntBuf[1], sizeof(PARAM_PTA_IPC_T)));
+        DBGLOG(REQ, INFO, ("pu4IntBuf[1] = %lx, size of PTA_IPC_T = %d.\n", pu4IntBuf[1], sizeof(PARAM_PTA_IPC_T)));
 
         prPtaIpc = (P_PTA_IPC_T) aucOidBuf;
         prPtaIpc->u.aucBTPParams[0] = (UINT_8) (pu4IntBuf[1] >> 24);
@@ -895,7 +881,7 @@ priv_set_int (
 
     case PRIV_CMD_BAND_CONFIG:
         {
-            DBGLOG(INIT, INFO, ("CMD set_band=%u\n", pu4IntBuf[1]));
+            DBGLOG(INIT, INFO, ("CMD set_band=%lu\n", pu4IntBuf[1]));
         }
         break;
 

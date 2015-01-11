@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: @(#) gl_p2p.c@@
 */
 
@@ -943,6 +929,11 @@ const struct iw_handler_def mtk_p2p_wext_handler_def = {
 #endif
 };
 
+#ifdef CONFIG_PM
+static const struct wiphy_wowlan_support p2p_wowlan_support = {
+		.flags = WIPHY_WOWLAN_DISCONNECT,
+	};
+#endif
 /*******************************************************************************
 *                                 M A C R O S
 ********************************************************************************
@@ -1327,7 +1318,6 @@ p2pNetRegister(
     )
 {
     BOOLEAN fgDoRegister = FALSE;
-    BOOLEAN fgRollbackRtnlLock = FALSE;
     BOOLEAN ret;
 
     GLUE_SPIN_LOCK_DECLARATION();
@@ -1346,12 +1336,7 @@ p2pNetRegister(
     if(!fgDoRegister) {
         return TRUE;
     }
-
-    if(fgIsRtnlLockAcquired && rtnl_is_locked()) {
-        fgRollbackRtnlLock = TRUE;
-        rtnl_unlock();
-    }
-
+	
     /* Here are functions which need rtnl_lock */
     wiphy_register(prGlueInfo->prP2PInfo->wdev.wiphy);
 
@@ -1371,11 +1356,6 @@ p2pNetRegister(
         prGlueInfo->prAdapter->rP2PNetRegState = ENUM_NET_REG_STATE_REGISTERED;
         ret = TRUE;
     }
-
-    if(fgRollbackRtnlLock) {
-        rtnl_lock();
-    }
-
     return ret;
 }
 
@@ -1386,7 +1366,6 @@ p2pNetUnregister(
     )
 {
     BOOLEAN fgDoUnregister = FALSE;
-    BOOLEAN fgRollbackRtnlLock = FALSE;
 
     GLUE_SPIN_LOCK_DECLARATION();
 
@@ -1410,21 +1389,11 @@ p2pNetUnregister(
     }
 
     netif_tx_stop_all_queues(prGlueInfo->prP2PInfo->prDevHandler);
-
-    if(fgIsRtnlLockAcquired && rtnl_is_locked()) {
-        fgRollbackRtnlLock = TRUE;
-        rtnl_unlock();
-    }
-    /* Here are functions which need rtnl_lock */
-
+	DBGLOG(P2P, INFO, ("P2P unregister_netdev 0x%p\n",
+			prGlueInfo->prP2PInfo->prDevHandler));
     unregister_netdev(prGlueInfo->prP2PInfo->prDevHandler);
 
     wiphy_unregister(prGlueInfo->prP2PInfo->wdev.wiphy);
-
-    if(fgRollbackRtnlLock) {
-        rtnl_lock();
-    }
-
     prGlueInfo->prAdapter->rP2PNetRegState = ENUM_NET_REG_STATE_UNREGISTERED;
 
     return TRUE;
@@ -1559,7 +1528,9 @@ glRegisterP2P(
     prGlueInfo->prP2PInfo->wdev.wiphy->max_remain_on_channel_duration = 5000;
     prGlueInfo->prP2PInfo->wdev.wiphy->n_cipher_suites = 5;
 	prGlueInfo->prP2PInfo->wdev.wiphy->cipher_suites = (const u32*)cipher_suites;
-	prGlueInfo->prP2PInfo->wdev.wiphy->flags = WIPHY_FLAG_CUSTOM_REGULATORY | WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+	prGlueInfo->prP2PInfo->wdev.wiphy->flags = WIPHY_FLAG_CUSTOM_REGULATORY | WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL | 
+						   WIPHY_FLAG_HAVE_AP_SME;
+	prGlueInfo->prP2PInfo->wdev.wiphy->ap_sme_capa = 1;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
     prGlueInfo->prP2PInfo->wdev.wiphy->max_scan_ssids = MAX_SCAN_LIST_NUM;
@@ -1567,6 +1538,10 @@ glRegisterP2P(
     prGlueInfo->prP2PInfo->wdev.wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
 #endif
 
+#ifdef CONFIG_PM
+	kalMemCopy(&(prGlueInfo->prP2PInfo->wdev.wiphy->wowlan),
+		&p2p_wowlan_support, sizeof(struct wiphy_wowlan_support));
+#endif
 #if 0
     /* 2. Register WIPHY */
     if(wiphy_register(prGlueInfo->prP2PInfo->wdev.wiphy) < 0) {

@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -33,6 +19,11 @@
 *                         C O M P I L E R   F L A G S
 ********************************************************************************
 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
+#define USE_NEW_PROC_FS_FLAG 1
+#else
+#define USE_NEW_PROC_FS_FLAG 0
+#endif
 
 
 /*******************************************************************************
@@ -55,6 +46,7 @@ typedef enum _ENUM_WMTRSTRET_TYPE_T{
     WMTRSTRET_MAX
 } ENUM_WMTRSTRET_TYPE_T, *P_ENUM_WMTRSTRET_TYPE_T;
 
+#define MAX_ANT_RAM_CODE_DOWN_TIME 3000
 /*
 3(retry times) * 180 (STP retry time out)
 + 10 (firmware process time) +
@@ -74,7 +66,7 @@ when mtk_wcn_wmt_func_on is called by wifi through rfkill)
 #define WMT_PWRON_RTY_DFT 2
 #define MAX_RETRY_TIME_DUE_TO_RX_TIMEOUT WMT_PWRON_RTY_DFT * WMT_LIB_RX_TIMEOUT
 #define MAX_EACH_FUNC_ON_WHEN_CHIP_POWER_ON_ALREADY WMT_LIB_RX_TIMEOUT /*each WMT command*/
-#define MAX_FUNC_ON_TIME (MAX_WIFI_ON_TIME + MAX_RETRY_TIME_DUE_TO_RX_TIMEOUT + MAX_EACH_FUNC_ON_WHEN_CHIP_POWER_ON_ALREADY * 3)
+#define MAX_FUNC_ON_TIME (MAX_WIFI_ON_TIME + MAX_RETRY_TIME_DUE_TO_RX_TIMEOUT + MAX_EACH_FUNC_ON_WHEN_CHIP_POWER_ON_ALREADY * 3 + MAX_ANT_RAM_CODE_DOWN_TIME)
 
 #define MAX_EACH_FUNC_OFF WMT_LIB_RX_TIMEOUT + 1000 /*1000->WMT_LIB_RX_TIMEOUT + 1000, logical judgement*/
 #define MAX_FUNC_OFF_TIME MAX_EACH_FUNC_OFF * 4
@@ -147,7 +139,7 @@ typedef enum _ENUM_WMTRSTSRC_TYPE_T{
 
 
 typedef struct {
-    PF_WMT_CB fDrvRst[4];
+    PF_WMT_CB fDrvRst[WMTDRV_TYPE_MAX];
 } WMT_FDRV_CB, *P_WMT_FDRV_CB;
 
 
@@ -333,7 +325,9 @@ extern INT32 wmt_lib_merge_if_flag_ctrl(UINT32 enable);
 extern INT32 wmt_lib_merge_if_flag_get(UINT32 enable);
 
 extern UINT8 *wmt_lib_get_cpupcr_xml_format(UINT32 *len);
+extern UINT32 wmt_lib_set_host_assert_info(UINT32 type,UINT32 reason,UINT32 en);
 
+extern INT32 wmt_lib_tm_temp_query(void);
 /*******************************************************************************
 *                              F U N C T I O N S
 ********************************************************************************

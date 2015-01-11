@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -177,6 +163,11 @@ _osal_inline_ LONG osal_strtol(const char *str, char **c, UINT32 adecimal)
 _osal_inline_ char *osal_strstr(char *str1, const char *str2)
 {
 	return strstr(str1,str2);
+}
+
+_osal_inline_ char *osal_strnstr(char *str1, const char *str2, int n)
+{
+	return strnstr(str1,str2, n);
 }
 
 
@@ -1112,7 +1103,7 @@ INT32  osal_wake_lock_init(P_OSAL_WAKE_LOCK pLock)
     else 
     {
         wake_lock_init(&pLock->wake_lock, WAKE_LOCK_SUSPEND, pLock->name);
-        
+        wake_unlock(&pLock->wake_lock);
         return 0;
     }
 }
@@ -1230,7 +1221,7 @@ INT32 osal_sleepable_lock_deinit (P_OSAL_SLEEPABLE_LOCK pSL)
     return 0;
 }
 
-INT32 osal_msleep(UINT32 ms)
+INT32 osal_sleep_ms(UINT32 ms)
 {
     msleep(ms);
     return 0;

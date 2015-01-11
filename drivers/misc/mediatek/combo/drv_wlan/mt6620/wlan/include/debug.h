@@ -1,18 +1,4 @@
 /*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
-/*
 ** $Id: //Department/DaVinci/BRANCHES/MT6620_WIFI_DRIVER_V2_3/include/debug.h#1 $
 */
 
@@ -318,17 +304,15 @@ typedef enum _ENUM_DBG_MODULE_T {
         { \
             if (aucDebugModule[DBG_##_Module##_IDX] & DBG_CLASS_##_Class) { \
                 if (DBG_CLASS_##_Class == DBG_CLASS_ERROR) { \
-                    LOG_FUNC_TIME("**Error[%s:%d]-", __FILE__, __LINE__); \
-                    LOG_FUNC("%s: (" #_Module " " #_Class ") ", __FUNCTION__); \
+                    LOG_FUNC_TIME("[wlan] **Error[%s:%d]-", __FILE__, __LINE__); \
+                    LOG_FUNC("[wlan] %s: (" #_Module " " #_Class ") ", __FUNCTION__); \
                 } \
                 else if (DBG_CLASS_##_Class == DBG_CLASS_WARN) { \
-                    LOG_FUNC_TIME("**Warning[%s:%d]-", __FILE__, __LINE__); \
-                    LOG_FUNC("%s: (" #_Module " " #_Class ") ", __FUNCTION__); \
-                } \
-                else if (DBG_CLASS_##_Class == DBG_CLASS_EVENT) { \
+                    LOG_FUNC_TIME("[wlan] **Warning[%s:%d]-", __FILE__, __LINE__); \
+                    LOG_FUNC("[wlan] %s: (" #_Module " " #_Class ") ", __FUNCTION__); \
                 } \
                 else { \
-                    LOG_FUNC_TIME("%s: (" #_Module " " #_Class ") ", __FUNCTION__); \
+                    LOG_FUNC("[wlan] %s: (" #_Module " " #_Class ") ", __FUNCTION__); \
                 } \
                 LOG_FUNC _Fmt; \
             } \
@@ -391,7 +375,20 @@ typedef enum _ENUM_DBG_MODULE_T {
 #if defined(LINUX)
     #define DBGLOG(_Module, _Class, _Fmt) \
     { \
-        _Module##_##_Class##_LOGFUNC _Fmt; \
+        if (aucDebugModule[DBG_##_Module##_IDX] & DBG_CLASS_##_Class) { \
+            if (DBG_CLASS_##_Class == DBG_CLASS_ERROR) { \
+                LOG_FUNC_TIME("[wlan] **Error[%s:%d]-", __FILE__, __LINE__); \
+                LOG_FUNC("[wlan] %s: (" #_Module " " #_Class ") ", __FUNCTION__); \
+            } \
+            else if (DBG_CLASS_##_Class == DBG_CLASS_WARN) { \
+                LOG_FUNC_TIME("[wlan] **Warning[%s:%d]-", __FILE__, __LINE__); \
+                LOG_FUNC("[wlan] %s: (" #_Module " " #_Class ") ", __FUNCTION__); \
+            } \
+            else { \
+                LOG_FUNC("[wlan] %s: (" #_Module " " #_Class ") ", __FUNCTION__); \
+            } \
+            LOG_FUNC _Fmt; \
+        } \
     }
 #else
     #define DBGLOG(_Module, _Class, _Fmt)

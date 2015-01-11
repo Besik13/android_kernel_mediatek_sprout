@@ -3,6 +3,7 @@
 #
 
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
+ifneq ($(CONFIG_ARCH_MTK_PROJECT),"mt6589")
 obj-$(CONFIG_MTK_FB) += disp_drv.o                                 \
          mtkfb_console.o                            \
          disp_assert_layer.o                        \
@@ -29,6 +30,6 @@ endif
 ifeq ($(CONFIG_MMPROFILE),y)
 ccflags-y += -DDEFAULT_MMP_ENABLE
 endif
-
-obj-y += $(subst ",,$(CONFIG_MTK_PLATFORM))/
+endif
+obj-y += $(subst ",,$(CONFIG_MTK_PLATFORM))
 

@@ -12,19 +12,19 @@ WLAN_CHIP_ID=MT6628
 ccflags-y:=$(filter-out -U$(WLAN_CHIP_ID),$(ccflags-y))
 ccflags-y += -DLINUX -D$(WLAN_CHIP_ID)
 
-ifeq ($(CONFIG_MTK_WAPI_SUPPORT), y)
+ifeq ($(MTK_WAPI_SUPPORT), yes)
     ccflags-y += -DCFG_SUPPORT_WAPI=1
 else
     ccflags-y += -DCFG_SUPPORT_WAPI=0
 endif
 
-ifeq ($(CONFIG_HAVE_XLOG_FEATURE), y)
+ifeq ($(HAVE_XLOG_FEATURE), yes)
     ccflags-y += -DCFG_SUPPORT_XLOG=1
 else
     ccflags-y += -DCFG_SUPPORT_XLOG=0
 endif
 
-ifeq ($(CONFIG_HAVE_AEE_FEATURE), y)
+ifeq ($(HAVE_AEE_FEATURE), yes)
     ccflags-y += -DCFG_SUPPORT_AEE=1
 else
     ccflags-y += -DCFG_SUPPORT_AEE=0
@@ -129,7 +129,7 @@ MGMT_OBJS += $(MGMT_DIR)p2p_assoc.o \
              $(MGMT_DIR)p2p_state.o        
                  
 
-ifeq ($(CONFIG_MTK_WAPI_SUPPORT), y)
+ifeq ($(MTK_WAPI_SUPPORT), yes)
 MGMT_OBJS += $(MGMT_DIR)wapi.o
 endif
 

@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 #include <linux/kernel.h> // GFP_KERNEL
 #include <linux/timer.h>  //init_timer, add_time, del_timer_sync
 #include <linux/time.h>  //gettimeofday
@@ -92,6 +78,8 @@ static int stp_dbg_nl_reset(
     struct sk_buff *skb,
     struct genl_info *info
     );
+static INT32 _wcn_core_dump_post_handle(P_WCN_CORE_DUMP_T dmp);
+static UINT32 stp_dbg_get_host_trigger_assert(VOID);
 
 /* attribute policy */
 static struct nla_policy stp_dbg_genl_policy[STP_DBG_ATTR_MAX + 1] = {
@@ -138,6 +126,7 @@ static void core_dump_timeout_handler(ULONG data)
     STP_DBG_INFO_FUNC(" end\n");
 
     if (dmp) {
+		STP_DBG_WARN_FUNC(" coredump timer timeout, coredump maybe not finished successfully\n");
         dmp->sm = CORE_DUMP_TIMEOUT;
     }
 }
@@ -212,6 +201,11 @@ INT32 wcn_core_dump_deinit(P_WCN_CORE_DUMP_T dmp)
     }
 
     if (dmp) {
+		if (NULL != dmp->p_head)
+        {
+            osal_free(dmp->p_head);
+            dmp->p_head = NULL;
+        }
         osal_sleepable_lock_deinit(&dmp->dmp_lock);
         osal_timer_stop(&dmp->dmp_timer);
         osal_free(dmp);
@@ -242,8 +236,8 @@ INT32 wcn_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 buf, INT32 len)
 {
     INT32 ret = 0;
     INT32 tmp;
-    #define INFO_HEAD "MT6628 FW CORE, "
-    
+	#define MAX_HEAD_LEN 512
+	
     if ((!dmp) || (!buf)) {
         STP_DBG_ERR_FUNC("invalid pointer!\n");
         return -1;
@@ -259,18 +253,25 @@ INT32 wcn_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 buf, INT32 len)
         case CORE_DUMP_INIT:
             wcn_compressor_reset(dmp->compressor, 1, GZIP);
             osal_timer_start(&dmp->dmp_timer, STP_CORE_DUMP_TIMEOUT);
-            
-            // first package, copy to info buffer
-            osal_strcpy(&dmp->info[0], INFO_HEAD);
-            tmp = STP_CORE_DUMP_INFO_SZ - osal_strlen(INFO_HEAD);
-            tmp = (len > tmp) ? tmp : len; 
-            osal_memcpy(&dmp->info[osal_strlen(INFO_HEAD)], buf, tmp);
-            dmp->info[STP_CORE_DUMP_INFO_SZ] = '\0';
-            
+
+			dmp->head_len = 0;
+			if (NULL == dmp->p_head)
+            {
+                dmp->p_head = osal_malloc(MAX_HEAD_LEN);
+				if (NULL == dmp->p_head)
+			    {
+				    STP_DBG_ERR_FUNC("alloc memory for head information failed, this may cause owner dispatch abnormal\n");
+			    }
+            }
+			if (NULL != dmp->p_head)
+			{
+			    osal_memset(dmp->p_head, 0, MAX_HEAD_LEN);
+			    (dmp->p_head)[MAX_HEAD_LEN - 1] = '\n';
+			}
             // show coredump start info on UI
             //osal_dbg_assert_aee("MT662x f/w coredump start", "MT662x firmware coredump start");
             #if WMT_PLAT_ALPS
-            aee_kernel_dal_show("MT662x coredump start, please wait up to 5 minutes.\n");
+            aee_kernel_dal_show("COMBO_CONSYS coredump start, please wait up to 5 minutes.\n");
             #endif
             // parsing data, and check end srting
             ret = wcn_core_dump_check_end(buf, len);
@@ -299,7 +300,8 @@ INT32 wcn_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 buf, INT32 len)
             
         case CORE_DUMP_DONE:
             wcn_compressor_reset(dmp->compressor, 1, GZIP);
-            osal_timer_start(&dmp->dmp_timer, STP_CORE_DUMP_TIMEOUT);
+            /*osal_timer_start(&dmp->dmp_timer, STP_CORE_DUMP_TIMEOUT);*/
+			osal_timer_stop(&dmp->dmp_timer);
             wcn_compressor_in(dmp->compressor, buf, len, 0);
             dmp->sm = CORE_DUMP_DOING;
             break;
@@ -309,10 +311,107 @@ INT32 wcn_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 buf, INT32 len)
         default:
             break;
     }
-
+    
+	if ((NULL != dmp->p_head) && (dmp->head_len < (MAX_HEAD_LEN - 1)))
+    {
+        tmp = (dmp->head_len + len) > (MAX_HEAD_LEN - 1) ? (MAX_HEAD_LEN - 1 - dmp->head_len) : len;
+        osal_memcpy(dmp->p_head + dmp->head_len, buf, tmp);
+        dmp->head_len += tmp;
+    }
+#if 0
+/*move this part to wcn_core_dump_flush, makesure this will always done even if coredump timeout happens*/
+	if ((CORE_DUMP_DONE == dmp->sm) || (CORE_DUMP_TIMEOUT == dmp->sm))
+	{
+		ret = _wcn_core_dump_post_handle(dmp);
+	}
+#endif	
     osal_unlock_sleepable_lock(&dmp->dmp_lock);
     
     return ret;
+}
+
+
+INT32 _wcn_core_dump_post_handle(P_WCN_CORE_DUMP_T dmp)
+{
+    #define INFO_HEAD ";COMBO_CONSYS FW CORE, "
+	INT32 ret = 0;
+	INT32 tmp = 0;
+	ENUM_STP_FW_ISSUE_TYPE issue_type;
+	
+	STP_DBG_INFO_FUNC(" enters...\n");
+	if((NULL != dmp->p_head) && (NULL != (osal_strnstr(dmp->p_head,"<ASSERT>", dmp->head_len))))
+	{
+        char *pStr = dmp->p_head;
+        char *pDtr = NULL;
+		
+		STP_DBG_INFO_FUNC(" <ASSERT> string found\n");
+        if (stp_dbg_get_host_trigger_assert())
+			issue_type = STP_HOST_TRIGGER_FW_ASSERT;
+		else
+			issue_type = STP_FW_ASSERT_ISSUE;
+		/*parse f/w assert additional informationi for f/w's analysis*/
+		ret = stp_dbg_set_fw_info(dmp->p_head, dmp->head_len, issue_type);
+        if (ret) {
+            STP_DBG_ERR_FUNC("set fw issue infor fail(%d),maybe fw warm reset...\n", ret);
+            stp_dbg_set_fw_info("Fw Warm reset", osal_strlen("Fw Warm reset"), STP_FW_WARM_RST_ISSUE);
+        }
+		
+		// first package, copy to info buffer
+		osal_strcpy(&dmp->info[0], INFO_HEAD);
+		
+		// set f/w assert information to warm reset
+        pStr = osal_strnstr(pStr, "<ASSERT>", dmp->head_len);
+        if (NULL != pStr)
+        {
+            pDtr = osal_strchr(pStr,'-');
+            if(NULL != pDtr)
+            {
+                tmp = pDtr - pStr;
+                osal_memcpy(&dmp->info[osal_strlen(INFO_HEAD)], pStr, tmp);
+                dmp->info[osal_strlen(dmp->info) + 1] = '\0';
+            }else
+            {
+                tmp = STP_CORE_DUMP_INFO_SZ - osal_strlen(INFO_HEAD);
+                tmp = (dmp->head_len > tmp) ? tmp : dmp->head_len; 
+                osal_memcpy(&dmp->info[osal_strlen(INFO_HEAD)], pStr, tmp);
+                dmp->info[STP_CORE_DUMP_INFO_SZ] = '\0';
+            }
+        }
+		
+	}
+	else
+	{
+		STP_DBG_INFO_FUNC(" <ASSERT> string not found, dmp->head_len:%d\n", dmp->head_len);
+		if (NULL == dmp->p_head)
+		{
+			STP_DBG_INFO_FUNC(" dmp->p_head is NULL\n");
+		}else
+		{
+			STP_DBG_INFO_FUNC(" dmp->p_head:%s\n", dmp->p_head);
+		}
+		
+        // first package, copy to info buffer
+        osal_strcpy(&dmp->info[0], INFO_HEAD);
+		// set f/w assert information to warm reset
+		osal_memcpy(&dmp->info[osal_strlen(INFO_HEAD)], "Fw warm reset exception...", osal_strlen("Fw warm reset exception..."));
+		dmp->info[osal_strlen(INFO_HEAD) + osal_strlen("Fw warm reset exception...") + 1] = '\0';
+		
+	}
+	dmp->head_len = 0;
+	
+	/*set host trigger assert flag to 0*/
+	stp_dbg_set_host_assert_info(0, 0, 0);
+	#if 0
+	if (NULL != dmp->p_head)
+	{
+	    osal_free(dmp->p_head);
+		dmp->p_head = NULL;
+	}
+	#endif
+	/*set ret value to notify upper layer do dump flush operation*/
+	ret = 1;
+	STP_DBG_INFO_FUNC(" exits...\n");
+	return ret;
 }
 
 
@@ -377,12 +476,15 @@ INT32 wcn_core_dump_flush(INT32 rst)
 {
     PUINT8 pbuf = NULL;
     INT32 len = 0;
-    INT32 ret = 0;
-
+	
     if (!g_core_dump) {
         STP_DBG_ERR_FUNC("invalid pointer!\n");
         return -1;
     }
+	
+	osal_lock_sleepable_lock(&g_core_dump->dmp_lock);
+	_wcn_core_dump_post_handle(g_core_dump);
+	osal_unlock_sleepable_lock(&g_core_dump->dmp_lock);
 
     wcn_core_dump_out(g_core_dump, &pbuf, &len);
     STP_DBG_INFO_FUNC("buf 0x%08x, len %d\n", (unsigned int)pbuf, len);
@@ -390,15 +492,8 @@ INT32 wcn_core_dump_flush(INT32 rst)
     // show coredump end info on UI
     //osal_dbg_assert_aee("MT662x f/w coredump end", "MT662x firmware coredump ends");
     #if WMT_PLAT_ALPS
-    aee_kernel_dal_show("MT662x coredump end\n");
-            
-    ret = stp_dbg_set_fw_info(pbuf, 512, STP_FW_ASSERT_ISSUE);
-    if (ret) {
-        STP_DBG_ERR_FUNC("set fw issue infor fail(%d),maybe fw warm reset...\n", ret);
-        stp_dbg_set_fw_info("Fw Warm reset", osal_strlen("Fw Warm reset"), STP_FW_WARM_RST_ISSUE);
-    }
-
     // call AEE driver API
+	aee_kernel_dal_show("COMBO_CONSYS coredump end\n");
     aed_combo_exception(NULL, 0, (const int*)pbuf, len, (const char*)g_core_dump->info);
     #endif
     // reset
@@ -825,6 +920,7 @@ static int _stp_dbg_dmp_in(MTKSTP_DBG_T *stp_dbg, char *buf, int len){
 
     unsigned long flags;
     unsigned int internalFlag = stp_dbg->logsys->size < STP_DBG_LOG_ENTRY_NUM;
+
     //#ifdef CONFIG_LOG_STP_INTERNAL   
     //Here we record log in this circle buffer, if buffer is full , select to overlap earlier log, logic should be okay
         internalFlag = 1;
@@ -840,6 +936,7 @@ static int _stp_dbg_dmp_in(MTKSTP_DBG_T *stp_dbg, char *buf, int len){
             buf, ((len >= STP_DBG_LOG_ENTRY_SZ)? (STP_DBG_LOG_ENTRY_SZ):(len)));
 
         stp_dbg->logsys->size++;
+
         stp_dbg->logsys->size = (stp_dbg->logsys->size > STP_DBG_LOG_ENTRY_NUM) ? STP_DBG_LOG_ENTRY_NUM : stp_dbg->logsys->size;
         
         if (0 != gStpDbgLogOut)
@@ -873,7 +970,7 @@ static int _stp_dbg_dmp_in(MTKSTP_DBG_T *stp_dbg, char *buf, int len){
     }
 
     spin_unlock_irqrestore(&(stp_dbg->logsys->lock), flags);
-
+	
     return 0;
 }
 
@@ -1395,12 +1492,12 @@ INT32 _stp_dbg_parser_assert_str(CHAR *str, ENUM_ASSERT_INFO_PARSER_TYPE type)
         len = pTemp - pDtr;
         osal_memcpy(&tempBuf[0], pDtr, len);
         tempBuf[len] = '\0';
-
-        if (0 == osal_memcmp(tempBuf, "*", len)) {
+        
+        if (0 == osal_memcmp(tempBuf, "*", osal_strlen("*"))) {
             osal_memcpy(&g_stp_dbg_cpupcr->assert_type[0], "general assert", osal_strlen("general assert"));
         }
 
-        if (0 == osal_memcmp(tempBuf, "Watch Dog Timeout", len)) {
+        if (0 == osal_memcmp(tempBuf, "Watch Dog Timeout", osal_strlen("Watch Dog Timeout"))) {
             osal_memcpy(&g_stp_dbg_cpupcr->assert_type[0], "wdt", osal_strlen("wdt"));
         }
 
@@ -1501,6 +1598,23 @@ INT32 stp_dbg_set_version_info(UINT32 chipid, UINT8 *pRomVer, UINT8 *wifiVer, UI
     return 0;
 }
 
+INT32 stp_dbg_set_host_assert_info(UINT32 drv_type,UINT32 reason,UINT32 en)
+{
+	osal_lock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
+
+	g_stp_dbg_cpupcr->host_assert_info.assert_from_host = en;
+	g_stp_dbg_cpupcr->host_assert_info.drv_type = drv_type;
+	g_stp_dbg_cpupcr->host_assert_info.reason = reason;
+	
+	osal_unlock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
+
+	return 0;
+}
+
+UINT32 stp_dbg_get_host_trigger_assert(VOID)
+{
+	return g_stp_dbg_cpupcr->host_assert_info.assert_from_host;
+}
 
 INT32 stp_dbg_set_fw_info(UINT8 *issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE issue_type)
 {
@@ -1513,12 +1627,17 @@ INT32 stp_dbg_set_fw_info(UINT8 *issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
         STP_DBG_ERR_FUNC("null issue infor\n");
         return -1;
     }
-
-    STP_DBG_INFO_FUNC("issue type(%d)\n", issue_type);
+	
     g_stp_dbg_cpupcr->issue_type = issue_type;
     osal_memset(&g_stp_dbg_cpupcr->assert_info[0], 0, STP_ASSERT_INFO_SIZE);
 
-    if (STP_FW_ASSERT_ISSUE == issue_type) {
+	/*print patch version when assert happened*/
+	STP_DBG_INFO_FUNC("=======================================\n");
+	STP_DBG_INFO_FUNC("[combo patch]patch version:%s\n",g_stp_dbg_cpupcr->patchVer);
+	STP_DBG_INFO_FUNC("[combo patch]ALPS branch:%s\n",g_stp_dbg_cpupcr->branchVer);
+	STP_DBG_INFO_FUNC("=======================================\n");
+	
+    if (STP_FW_ASSERT_ISSUE == issue_type || (STP_HOST_TRIGGER_FW_ASSERT == issue_type)) {
         tempbuf = osal_malloc(len);
 
         if (!tempbuf) {
@@ -1528,26 +1647,15 @@ INT32 stp_dbg_set_fw_info(UINT8 *issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
         osal_memcpy(&tempbuf[0], issue_info, len);
 
         for (i = 0; i < len; i++) {
-            if (tempbuf[i] == '\0') {
+            if ((tempbuf[i] == '\0') || (tempbuf[i] == '\n')) {
                 tempbuf[i] = '?';
             }
         }
+		STP_DBG_INFO_FUNC("tempbuf<%s>\n", tempbuf);
+		STP_DBG_INFO_FUNC("issue type(%d)\n", issue_type);
 
         tempbuf[len] = '\0';
-#if 0
-        STP_DBG_INFO_FUNC("FW assert infor len(%d)\n", len);
-
-        for (i = 0; i < len; i++) {
-            if (0 == len % 64) {
-                printk("\n");
-            }
-
-            printk("%c", tempbuf[i]);
-        }
-
-        printk("\n");
-#endif
-
+		
         for (type_index = STP_DBG_ASSERT_INFO; type_index < STP_DBG_PARSER_TYPE_MAX; type_index ++) {
             iRet += _stp_dbg_parser_assert_str(&tempbuf[0], type_index);
         }
@@ -1555,7 +1663,36 @@ INT32 stp_dbg_set_fw_info(UINT8 *issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
         if (iRet) {
             STP_DBG_ERR_FUNC("passert assert infor fail(%d)\n", iRet);
         }
+		
+		if(STP_HOST_TRIGGER_FW_ASSERT == issue_type)
+		{
+			switch(g_stp_dbg_cpupcr->host_assert_info.drv_type) {
+				case 0:
+					STP_DBG_INFO_FUNC("bt trigger assert\n");
+					osal_lock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
+					if(31 != g_stp_dbg_cpupcr->host_assert_info.reason)
+					/*BT firmware trigger assert*/
+					{
+						g_stp_dbg_cpupcr->fwTaskId = 1;
+						
+					}else
+					/*BT stack trigger assert*/
+					{
+						g_stp_dbg_cpupcr->fwTaskId = 8;
+					}
 
+					g_stp_dbg_cpupcr->host_assert_info.assert_from_host = 0;
+					//g_stp_dbg_cpupcr->host_assert_info.drv_type = 0;
+					//g_stp_dbg_cpupcr->host_assert_info.reason = 0;
+
+					osal_unlock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
+
+					break;
+				default:
+				break;
+			}
+
+		}
         osal_free(tempbuf);
     } else if (STP_FW_NOACK_ISSUE == issue_type) {
         osal_lock_sleepable_lock(&g_stp_dbg_cpupcr->lock);

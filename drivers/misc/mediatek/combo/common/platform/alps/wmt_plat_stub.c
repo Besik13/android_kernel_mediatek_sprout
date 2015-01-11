@@ -1,17 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
-
 /*! \file
     \brief  Declaration of library functions
 
@@ -56,6 +42,7 @@
 #include "wmt_plat_stub.h"
 #include "wmt_exp.h"
 #include <mach/mtk_wcn_cmb_stub.h>
+#include "wmt_lib.h"
 
 /*******************************************************************************
 *                              C O N S T A N T S
@@ -107,6 +94,10 @@ static VOID wmt_plat_func_ctrl (UINT32 type, UINT32 on)
     return;
 }
 
+static signed long wmt_plat_thremal_query(void)
+{
+    return wmt_lib_tm_temp_query();
+}
 
 INT32 wmt_plat_stub_init (void)
 {
@@ -114,6 +105,7 @@ INT32 wmt_plat_stub_init (void)
     CMB_STUB_CB stub_cb;
     stub_cb.aif_ctrl_cb = wmt_plat_audio_ctrl;
     stub_cb.func_ctrl_cb = wmt_plat_func_ctrl;
+    stub_cb.thermal_query_cb = wmt_plat_thremal_query;
     stub_cb.size = sizeof(stub_cb);
 
     /* register to cmb_stub */
