@@ -46,7 +46,7 @@ struct env_ioctl
 	char *value;
 	int value_len;	
 };
-extern void env_init(loff_t env_part_addr);
+//extern void env_init(loff_t env_part_addr);
 #ifdef MTK_EMMC_SUPPORT
 extern int eMMC_rw_x(loff_t addr,u32  *buffer, int host_num, int iswrite,u32 totalsize, int transtype, Region part);
 #endif

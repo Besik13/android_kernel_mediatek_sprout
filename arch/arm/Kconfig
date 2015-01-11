@@ -771,6 +771,21 @@ config ARCH_MT6582
 	select ARCH_REQUIRE_GPIOLIB
 	help
 	  This enable support for MediaTek MT6582.
+	  
+config ARCH_MT6589
+        bool "MediaTek MT6589"
+        select GENERIC_TIME
+        select GENERIC_CLOCKEVENTS
+        select ARCH_HAS_CPUFREQ
+        select ARM_AMBA
+        select CPU_V7
+        select HAVE_SMP
+        select NEED_MACH_MEMORY_H
+        select ARM_GIC
+        select FIQ_GLUE
+        select VFP_OPT
+        help
+          This enable support for MediaTek MT6589.
 
 config ARCH_SHMOBILE
 	bool "Renesas SH-Mobile / R-Mobile"
@@ -1091,6 +1106,10 @@ source "arch/arm/mach-lpc32xx/Kconfig"
 
 if ARCH_MT6582
 source "arch/arm/mach-mt6582/Kconfig"
+endif
+
+if ARCH_MT6589
+source "arch/arm/mach-mt6589/Kconfig"
 endif
 
 source "arch/arm/mach-msm/Kconfig"

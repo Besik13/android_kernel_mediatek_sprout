@@ -1,27 +1,10 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
 
 #ifndef _PMT_H
 #define _PMT_H
 
 #include "partition_define.h"
-
-//mt6516_partition.h has defination
-//mt6516_download.h define again, both is 20
-
 #define MAX_PARTITION_NAME_LEN 64
-#ifdef CONFIG_MTK_EMMC_SUPPORT
+#ifdef MTK_EMMC_SUPPORT
 /*64bit*/
 typedef struct
 {

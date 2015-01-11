@@ -1,16 +1,3 @@
-/*
-* Copyright (C) 2011-2014 MediaTek Inc.
-* 
-* This program is free software: you can redistribute it and/or modify it under the terms of the 
-* GNU General Public License version 2 as published by the Free Software Foundation.
-* 
-* This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-* without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License along with this program.
-* If not, see <http://www.gnu.org/licenses/>.
-*/
 
 #ifndef __PARTITION_DEFINE_H__
 #define __PARTITION_DEFINE_H__
@@ -25,6 +12,7 @@
 #define PART_PRELOADER "PRELOADER" 
 #define PART_MBR "MBR" 
 #define PART_EBR1 "EBR1" 
+#define PART_PMT "PMT" 
 #define PART_PRO_INFO "PRO_INFO" 
 #define PART_NVRAM "NVRAM" 
 #define PART_PROTECT_F "PROTECT_F" 
@@ -59,29 +47,30 @@
 #define PART_SIZE_PRELOADER			(6144*KB)
 #define PART_SIZE_MBR			(512*KB)
 #define PART_SIZE_EBR1			(512*KB)
+#define PART_SIZE_PMT			(4096*KB)
 #define PART_SIZE_PRO_INFO			(3072*KB)
 #define PART_SIZE_NVRAM			(5120*KB)
 #define PART_SIZE_PROTECT_F			(10240*KB)
 #define PART_SIZE_PROTECT_S			(10240*KB)
 #define PART_SIZE_SECCFG			(128*KB)
-#define PART_OFFSET_SECCFG			(0x2300000)
+#define PART_OFFSET_SECCFG			(0x2700000)
 #define PART_SIZE_UBOOT			(384*KB)
-#define PART_SIZE_BOOTIMG			(6144*KB)
-#define PART_SIZE_RECOVERY			(6144*KB)
+#define PART_SIZE_BOOTIMG			(16384*KB)
+#define PART_SIZE_RECOVERY			(16384*KB)
 #define PART_SIZE_SEC_RO			(6144*KB)
-#define PART_OFFSET_SEC_RO			(0x2f80000)
+#define PART_OFFSET_SEC_RO			(0x4780000)
 #define PART_SIZE_MISC			(512*KB)
 #define PART_SIZE_LOGO			(3072*KB)
 #define PART_SIZE_EBR2			(512*KB)
 #define PART_SIZE_EXPDB			(10240*KB)
-#define PART_SIZE_ANDROID			(716800*KB)
+#define PART_SIZE_ANDROID			(921600*KB)
 #define PART_SIZE_CACHE			(129024*KB)
-#define PART_SIZE_USRDATA			(1048576*KB)
+#define PART_SIZE_USRDATA			(1179648*KB)
 #define PART_SIZE_FAT			(0*KB)
 #define PART_SIZE_BMTPOOL			(0xa8)
 
 
-#define PART_NUM			21
+#define PART_NUM			22
 
 
 
@@ -115,7 +104,7 @@ struct excel_info{
 	unsigned int partition_idx;
 	Region region;
 };
-#ifdef CONFIG_MTK_EMMC_SUPPORT
+#ifdef  MTK_EMMC_SUPPORT
 /*MBR or EBR struct*/
 #define SLOT_PER_MBR 4
 #define MBR_COUNT 8
@@ -127,7 +116,7 @@ struct MBR_EBR_struct{
 
 extern struct MBR_EBR_struct MBR_EBR_px[MBR_COUNT];
 #endif
-extern struct excel_info PartInfo[PART_NUM];
+extern struct excel_info *PartInfo;
 
 
 #endif

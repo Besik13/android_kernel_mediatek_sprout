@@ -575,13 +575,13 @@ extern void __inner_clean_dcache_L1(void);
 extern void __inner_clean_dcache_L2(void);
 extern void __inner_clean_dcache_all(void);
 
-#if defined (CONFIG_MTK_ETM)
+//#if defined (CONFIG_MTK_ETM)
 extern void trace_stop_dormant(void);
 extern void trace_start_dormant(void);
-#else //#if defined (CONFIG_MTK_ETM)
-void trace_stop_dormant(void) {}
-void trace_start_dormant(void) {}
-#endif //#if defined (CONFIG_MTK_ETM)
+//#else //#if defined (CONFIG_MTK_ETM)
+//void trace_stop_dormant(void) {}
+//void trace_start_dormant(void) {}
+//#endif //#if defined (CONFIG_MTK_ETM)
 
 
 //for save/restore breakpoint and watchpoint

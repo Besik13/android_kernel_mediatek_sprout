@@ -14,13 +14,13 @@
 #include <linux/proc_fs.h>
 #include <asm/setup.h>
 #include <asm/memblock.h>
-
 #include <mach/mtk_ccci_helper.h>
 
 #include <mach/eint.h>
 #include <mach/mt_gpio.h>
 #include <mach/mt_reg_base.h>
-#include <mt6320_battery.h>
+#include <mach/battery_common.h>
+//#include <mt6320_battery.h>
 #include <mach/pmic_mt6320_sw.h>
 #include <mach/upmu_common.h>
 #include <mach/upmu_hw.h>

@@ -35,7 +35,7 @@
 #include <mach/mt_spm_idle.h>    // For spm_enable_sodi()/spm_disable_sodi().
 #include <linux/proc_fs.h>
 //
-#include "../smi/smi_common.h"
+#include "smi_common.h"
 
 typedef unsigned char           MUINT8;
 typedef unsigned int            MUINT32;
