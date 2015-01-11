@@ -123,6 +123,9 @@ struct last_reboot_reason {
 	uint8_t     hotplug_data2[NR_CPUS];
 };
 
+
+
+
 void aee_rr_last(struct last_reboot_reason *lrr);
 void aee_sram_printk(const char *fmt, ...);
 
@@ -133,6 +136,22 @@ struct aee_oops *aee_oops_create(AE_DEFECT_ATTR attr, AE_EXP_CLASS clazz, const 
 void aee_oops_set_backtrace(struct aee_oops *oops, const char *backtrace);
 void aee_oops_set_process_path(struct aee_oops *oops, const char *process_path);
 void aee_oops_free(struct aee_oops *oops);
+
+/* powerkey press,modules use bits */
+#define AE_WDT_Powerkey_DEVICE_PATH      	"/dev/kick_powerkey"
+#define WDT_SETBY_DEFAULT               	(0)
+#define WDT_SETBY_Backlight             	(1<<0)
+#define WDT_SETBY_Display              		(1<<1)
+#define WDT_SETBY_SF            			(1<<2)
+#define WDT_SETBY_PM            			(1<<3)
+#define WDT_SETBY_WMS_DISABLE_PWK_MONITOR 	(0xAEEAEE00)
+#define WDT_SETBY_WMS_ENABLE_PWK_MONITOR  	(0xAEEAEE01)
+#define WDT_PWK_HANG_FORCE_HWT  		 	(0xAEE0FFFF)
+
+// QHQ RT Monitor    
+#define AEEIOCTL_RT_MON_Kick _IOR('p', 0x0A, int)
+#define AE_WDT_DEVICE_PATH      "/dev/RT_Monitor"
+// QHQ RT Monitor    end
 
 /* DB dump option bits, set relative bit to 1 to include related file in db */
 #define DB_OPT_DEFAULT                  (0)
@@ -181,6 +200,11 @@ void aee_kernel_dal_api(const char *file, const int line, const char *msg);
 
 void aed_md_exception(const int *log, int log_size, const int *phy, int phy_size, const char* detail);
 void aed_combo_exception(const int *log, int log_size, const int *phy, int phy_size, const char* detail);
+
+void aee_kernel_wdt_kick_Powkey_api(const char *module, int msg);
+int  aee_kernel_wdt_kick_api(int kinterval);
+void aee_powerkey_notify_press(unsigned long pressed);
+int  aee_kernel_Powerkey_is_press(void);
 
 void aee_kdump_reboot(AEE_REBOOT_MODE, const char *msg, ...);
 
