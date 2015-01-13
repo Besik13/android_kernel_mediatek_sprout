@@ -11,8 +11,8 @@ ifneq ($(CONFIG_MTK_PLATFORM),"mt6589")
 			CONFIG_MTK_USIF = n
 		endif
 	endif
+obj-$(CONFIG_MTK_USIF) := DumChar.o
+DumChar-objs :=  sysenv.o
 else
 obj-y := mt6589/
 endif
-obj-$(CONFIG_MTK_USIF) := DumChar.o
-DumChar-objs :=  sysenv.o

@@ -4151,7 +4151,7 @@ static void mtkfb_early_suspend(struct early_suspend *h)
 	sem_early_suspend_cnt++;
     up(&sem_early_suspend);
     mutex_unlock(&ScreenCaptureMutex);
-	aee_kernel_wdt_kick_Powkey_api("mtkfb_early_suspend",WDT_SETBY_Display); 
+	//aee_kernel_wdt_kick_Powkey_api("mtkfb_early_suspend",WDT_SETBY_Display); 
     printk("[FB Driver] leave early_suspend\n");
     
     MSG_FUNC_LEAVE();
@@ -4228,7 +4228,7 @@ static void mtkfb_late_resume(struct early_suspend *h)
 		}
 
     printk("[FB Driver] leave late_resume\n");
-	aee_kernel_wdt_kick_Powkey_api("mtkfb_late_resume",WDT_SETBY_Display); 
+	//aee_kernel_wdt_kick_Powkey_api("mtkfb_late_resume",WDT_SETBY_Display); 
     MSG_FUNC_LEAVE();
 }
 #endif

@@ -7,7 +7,7 @@
 /*=======================================================================*/
 /* MT6589 MSDC                                                             */
 /*=======================================================================*/
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 #define CFG_DEV_MSDC0
 #endif
 #define CFG_DEV_MSDC1

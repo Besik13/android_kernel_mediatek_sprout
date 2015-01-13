@@ -17,18 +17,21 @@
 #include "mt_dump.h"
 #include <mach/board.h> 
 #include<linux/mmc/sd_misc.h>
-#ifdef MTK_EMMC_SUPPORT
-#include "partition_define.h"
-#endif
+
 MODULE_LICENSE("GPL");
 /*--------------------------------------------------------------------------*/
 /* head file define                                                         */
 /*--------------------------------------------------------------------------*/
 /* some marco will be reuse with mmc subsystem */
 
-#ifdef MTK_EMMC_SUPPORT
-#include "partition_define.h"
+//#ifdef CONFIG_MTK_EMMC_SUPPORT
+//#include "../sprout/common/partition_define.h"
+//#endif
+
+#ifdef CONFIG_MTK_EMMC_SUPPORT
+#include <mach/partition.h>
 #endif
+
 char test_kdump[]={6,5,8,9,'k','d','u','m','p','t','e','s','t'};
 //==============
 #define TEST_SIZE       (128*1024)
@@ -877,7 +880,7 @@ static unsigned int simp_mmc_select_voltage(struct simp_mmc_host *host, unsigned
 #define EXT_CSD_PART_CFG                179 /* R/W/E & R/W/E_P */
 #define EXT_CSD_SEC_CNT					212
 #define CAPACITY_2G						(2 * 1024 * 1024 * 1024ULL)
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 static u64 simp_msdc_get_user_capacity(struct simp_mmc_card *card)
 {
 	u64 device_capacity = 0;
@@ -894,9 +897,10 @@ static u64 simp_msdc_get_user_capacity(struct simp_mmc_card *card)
 	return device_capacity;
 }
 #endif
+#if 0
 static void simp_emmc_cal_offset(struct simp_mmc_card *card)
 {
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 	u64 device_capacity = 0;
 	simp_offset = MBR_START_ADDRESS_BYTE - (simp_ext_csd[EXT_CSD_BOOT_SIZE_MULT]* 128 * 1024
                 + simp_ext_csd[EXT_CSD_BOOT_SIZE_MULT] * 128 * 1024
@@ -921,8 +925,18 @@ static void simp_emmc_cal_offset(struct simp_mmc_card *card)
 			simp_offset /= 512;
 	printk(KERN_EMERG "emmc offset (0x%x)\n", simp_offset);
 
-#endif /* end of MTK_EMMC_SUPPORT */
+#endif /* end of CONFIG_MTK_EMMC_SUPPORT */
 }
+#endif
+static void simp_emmc_cal_offset(struct simp_mmc_card *card)
+{
+#ifdef CONFIG_MTK_EMMC_SUPPORT
+    simp_offset = 0;
+    printk(KERN_EMERG "emmc offset (0x%x)\n", simp_offset);
+
+#endif /* end of CONFIG_MTK_EMMC_SUPPORT */
+}
+
 static int simp_msdc_pio_read(struct simp_msdc_host *host, unsigned int *ptr, unsigned int size);
 static void simp_msdc_set_blknum(struct simp_msdc_host *host, unsigned int blknum);
 
@@ -1597,74 +1611,59 @@ static int simp_mmc_init(int card_type,bool boot)
 /*--------------------------------------------------------------------------*/
 /* porting for panic dump interface                                         */
 /*--------------------------------------------------------------------------*/
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 static int simp_emmc_dump_write(unsigned char* buf, unsigned int len, unsigned int offset,unsigned int dev)
 {
-
     /* maybe delete in furture */
     unsigned int i;
-	unsigned int status = 0;
-	int polling = MAX_POLLING_STATUS;
-    unsigned int l_user_begin_num = 0;
-    unsigned int l_dest_num = 0;
+    unsigned int status = 0;
+    int polling = MAX_POLLING_STATUS;
     unsigned long long l_start_offset;
     unsigned int l_addr;
     unsigned char *l_buf;
-    unsigned int ret = 1;
+    unsigned int ret = 1;  /* != 0 means error occur */
     static int emmc_init = 0;
-	int err = 0;
+    int err = 0;
+    struct hd_struct* lp_hd_struct = NULL;
 
     if (0 != len % 512) {
         /* emmc always in slot0 */
         printk("debug: parameter error!\n");
         return ret;
     }
-	
-#if 0
-    printk("write data:");
-    for (i = 0; i < 32; i++) {
-        printk("0x%x", buf[i]);
-        if (0 == (i+1)%32)
-            printk("\n");
-    }
-#endif
 
     /* find the offset in emmc */
-    for (i = 0; i < PART_NUM; i++) {
-        if ('m' == *(PartInfo[i].name) && 'b' == *(PartInfo[i].name + 1) &&
-            'r' == *(PartInfo[i].name + 2)){
-            l_user_begin_num = i;
-        }
-
-        if ('e' == *(PartInfo[i].name) && 'x' == *(PartInfo[i].name + 1) &&
-            'p' == *(PartInfo[i].name + 2) && 'd' == *(PartInfo[i].name + 3) &&
-            'b' == *(PartInfo[i].name + 4)){
-            l_dest_num = i;
-        }
-    }
-
-    if (l_user_begin_num >= PART_NUM && l_dest_num >= PART_NUM) {
+    lp_hd_struct = get_part("expdb");
+    if (NULL == lp_hd_struct){
         printk("not find in scatter file error!\n");
+
+        put_part(lp_hd_struct);
         return ret;
     }
 
-    if (PartInfo[l_dest_num].size < (len + offset)) {
+    if (lp_hd_struct->nr_sects < ((len + offset) >> 9)){
         printk("write operation oversize!\n");
+
+        put_part(lp_hd_struct);
         return ret;
     }
 
 #if MTK_MMC_DUMP_DBG
-    printk(KERN_EMERG "write start address=%llu\n", 
-                        PartInfo[l_dest_num].start_address - PartInfo[l_user_begin_num].start_address);
-#endif 
+    printk(KERN_EMERG "write start sector = %llu, part size = %llu\n", lp_hd_struct->start_sect, lp_hd_struct->nr_sects);
+#endif
 
-    l_start_offset = (u64)offset + PartInfo[l_dest_num].start_address - PartInfo[l_user_begin_num].start_address;
-   
+    l_start_offset = (u64)offset + (u64)(lp_hd_struct->start_sect << 9);
+    printk(KERN_EMERG "write start address = %llu\n", l_start_offset);
+
+    if (NULL != lp_hd_struct){
+        put_part(lp_hd_struct);
+    }
+
     if (emmc_init == 0) {
         emmc_init = 1;
-	    simp_mmc_rescan_try_freq(pmmc_boot_host, 0);
+        simp_mmc_rescan_try_freq(pmmc_boot_host, 0);
     }
-	printk("-");
+    printk("-");
     for (i = 0; i < (len/512); i++) {
         /* code */
         l_addr = (l_start_offset >> 9) + i; //blk address
@@ -1672,20 +1671,20 @@ static int simp_emmc_dump_write(unsigned char* buf, unsigned int len, unsigned i
 
 #if MTK_MMC_DUMP_DBG
         printk("l_start_offset = 0x%x\n", l_addr);
-#endif  
-		
+#endif
+
         err = simp_mmc_single_write(pmmc_boot_host, l_addr, l_buf, 512);
-		do{
-				simp_mmc_get_status(pmmc_boot_host, &status);
-		}while(R1_CURRENT_STATE(status) == 7 && polling--);
-	}
-	if(err == 0){
-		printk("=");
-		return 0;}
-	else
-		return ret;
+        do{
+                simp_mmc_get_status(pmmc_boot_host, &status);
+        }while(R1_CURRENT_STATE(status) == 7 && polling--);
+    }
+    if(err == 0){
+        printk("=");
+        return 0;
+    } else
+        return ret;
 }
-#endif /* end of MTK_EMMC_SUPPORT */
+#endif /* end of CONFIG_MTK_EMMC_SUPPORT */
 
 static int simp_sd_dump_write(unsigned char* buf, unsigned int len, unsigned int offset,unsigned int dev)
 {
@@ -1800,7 +1799,7 @@ int card_dump_func_write(unsigned char* buf, unsigned int len, unsigned long lon
 	sec_offset = offset/512;
     switch (dev){
         case DUMP_INTO_BOOT_CARD_IPANIC:
-            #ifdef MTK_EMMC_SUPPORT
+            #ifdef CONFIG_MTK_EMMC_SUPPORT
             ret = simp_emmc_dump_write(buf, len, (unsigned int)offset, dev);
 			#endif
             break;
@@ -1818,19 +1817,18 @@ int card_dump_func_write(unsigned char* buf, unsigned int len, unsigned long lon
 }
 EXPORT_SYMBOL(card_dump_func_write);
 extern int simple_sd_ioctl_rw(struct msdc_ioctl* msdc_ctl);
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 
 #define SD_FALSE             -1
 #define SD_TRUE              0
 static int emmc_dump_read(unsigned char* buf, unsigned int len, unsigned int offset,unsigned int slot)
 {
     /* maybe delete in furture */
-    struct msdc_ioctl     msdc_ctl;
+    struct msdc_ioctl msdc_ctl;
     unsigned int i;
-    unsigned int l_user_begin_num = 0;
-    unsigned int l_dest_num = 0;
     unsigned long long l_start_offset = 0;
     unsigned int ret = SD_FALSE;
+    struct hd_struct* lp_hd_struct = NULL;
 
     if ((0 != slot) || (0 != offset % 512) || (0 != len % 512)) {
         /* emmc always in slot0 */
@@ -1838,39 +1836,39 @@ static int emmc_dump_read(unsigned char* buf, unsigned int len, unsigned int off
         return ret;
     }
 
-    /* find the offset in emmc */
-    for (i = 0; i < PART_NUM; i++) {
-    //for (i = 0; i < 1; i++) {
-        if ('m' == *(PartInfo[i].name) && 'b' == *(PartInfo[i].name + 1) &&
-                'r' == *(PartInfo[i].name + 2)){
-            l_user_begin_num = i;
-        }
 
-        if ('e' == *(PartInfo[i].name) && 'x' == *(PartInfo[i].name + 1) &&
-                'p' == *(PartInfo[i].name + 2) && 'd' == *(PartInfo[i].name + 3) &&
-                'b' == *(PartInfo[i].name + 4)){
-            l_dest_num = i;
-        }
+    if (0 != len % 512) {
+        /* emmc always in slot0 */
+        printk("debug: parameter error!\n");
+        return ret;
     }
 
-#if DEBUG_MMC_IOCTL
-    printk("l_user_begin_num = %d l_dest_num = %d\n",l_user_begin_num,l_dest_num);
+    /* find the offset in emmc */
+    lp_hd_struct = get_part("expdb");
+    if (NULL == lp_hd_struct){
+        printk("not find in scatter file error!\n");
+
+        put_part(lp_hd_struct);
+        return ret;
+    }
+
+    if (lp_hd_struct->nr_sects < ((len + offset) >> 9)){
+        printk("write operation oversize!\n");
+
+        put_part(lp_hd_struct);
+        return ret;
+    }
+
+#if MTK_MMC_DUMP_DBG
+    printk(KERN_EMERG "read start sector = %llu, part size = %llu\n", lp_hd_struct->start_sect, lp_hd_struct->nr_sects);
 #endif
 
-    if (l_user_begin_num >= PART_NUM && l_dest_num >= PART_NUM) {
-        printk("not find in scatter file error!\n");
-        return ret;
-    }
+    l_start_offset = (u64)offset + (u64)(lp_hd_struct->start_sect << 9);
+    printk(KERN_EMERG "read start address = %llu\n", l_start_offset);
 
-    if (PartInfo[l_dest_num].size < (len + offset)) {
-        printk("read operation oversize!\n");
-        return ret;
+    if (NULL != lp_hd_struct){
+        put_part(lp_hd_struct);
     }
-
-#if DEBUG_MMC_IOCTL
-    printk("read start address=0x%llx\n", PartInfo[l_dest_num].start_address - PartInfo[l_user_begin_num].start_address);
-#endif 
-    l_start_offset = offset + PartInfo[l_dest_num].start_address - PartInfo[l_user_begin_num].start_address;
 
     msdc_ctl.partition = 0;
     msdc_ctl.iswrite = 0;
@@ -1885,10 +1883,10 @@ static int emmc_dump_read(unsigned char* buf, unsigned int len, unsigned int off
 
 #if DEBUG_MMC_IOCTL
         printk("l_start_offset = 0x%x\n", msdc_ctl.address);
-#endif        
+#endif
         msdc_ctl.result = simple_sd_ioctl_rw(&msdc_ctl);
     }
-    
+
 #if DEBUG_MMC_IOCTL
     printk("read data:");
     for (i = 0; i < 32; i++) {
@@ -1898,6 +1896,7 @@ static int emmc_dump_read(unsigned char* buf, unsigned int len, unsigned int off
     }
 #endif
     return SD_TRUE;
+
 }
 #endif
 int card_dump_func_read(unsigned char* buf, unsigned int len, unsigned long long offset, int dev)
@@ -1916,7 +1915,7 @@ int card_dump_func_read(unsigned char* buf, unsigned int len, unsigned long long
 	sec_offset = offset/512;
     switch (dev){
         case DUMP_INTO_BOOT_CARD_IPANIC:
-            #ifdef MTK_EMMC_SUPPORT
+            #ifdef CONFIG_MTK_EMMC_SUPPORT
             ret = emmc_dump_read(buf, len, (unsigned int)offset, dev);
 			#endif
             break;
@@ -1965,7 +1964,7 @@ static void simp_msdc_hw_init(void)
 static int __init emmc_dump_init(void)
 {
    	simp_msdc_hw_init();
-	#ifdef MTK_EMMC_SUPPORT
+	#ifdef CONFIG_MTK_EMMC_SUPPORT
 	simp_mmc_init(MSDC_EMMC,1);
 	#endif
     simp_mmc_init(MSDC_SD,0);

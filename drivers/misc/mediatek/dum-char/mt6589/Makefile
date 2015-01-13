@@ -13,5 +13,4 @@ else
 endif
 
 obj-$(CONFIG_MTK_USIF) := DumChar.o
-DumChar-objs :=  dumchar.o env.o
-
+DumChar-objs :=  dumchar.o sysenv.o

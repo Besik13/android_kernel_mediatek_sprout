@@ -39,9 +39,10 @@
 #include <asm/uaccess.h>
 
 #ifdef CONFIG_MTK_EMMC_SUPPORT
-#include "partition_define.h"
+//#include "../sprout/common/partition_define.h" fix mount block Cheshkin 16.11.2014
 
 //extern struct excel_info PartInfoEmmc[PART_NUM];
+//extern u32 g_emmc_mode_switch;
 #endif
 
 #define DRV_NAME_MISC            "misc-sd"
@@ -883,7 +884,7 @@ int msdc_get_info(STORAGE_TPYE storage_type,GET_STORAGE_INFO info_type,struct st
 			info->emmc_capacity = msdc_get_capacity(1);
 			break;
 		case EMMC_RESERVE:
-			//info->emmc_reserve = msdc_get_reserve();
+			info->emmc_reserve = msdc_get_reserve();
 			break;
 		default :
 			printk(KERN_ERR "Please check INFO_TYPE");
@@ -891,6 +892,7 @@ int msdc_get_info(STORAGE_TPYE storage_type,GET_STORAGE_INFO info_type,struct st
 	}
 	return 1;
 }
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 static int simple_mmc_get_disk_info(struct mbr_part_info* mpi, unsigned char* name)
 {
     int i = 0;
@@ -900,7 +902,7 @@ static int simple_mmc_get_disk_info(struct mbr_part_info* mpi, unsigned char* na
     struct msdc_host *host;
     struct gendisk *disk;
     struct __mmc_blk_data *md;
-    
+
     /* emmc always in slot0 */
     host = msdc_get_host(MSDC_EMMC,MSDC_BOOT_EN,0);
     BUG_ON(!host);
@@ -912,39 +914,32 @@ static int simple_mmc_get_disk_info(struct mbr_part_info* mpi, unsigned char* na
     BUG_ON(!md->disk);
 
     disk = md->disk;
-    
-    /* use this way to find partition info is to avoid handle addr transfer in scatter file 
+
+    /* use this way to find partition info is to avoid handle addr transfer in scatter file
      * and 64bit address calculate */
     disk_part_iter_init(&piter, disk, 0);
     while ((part = disk_part_iter_next(&piter))){
-        for (i = 0; i < PART_NUM; i++) {
-            if (PartInfo[i].partition_idx != 0 && PartInfo[i].partition_idx == part->partno) {
 #if DEBUG_MMC_IOCTL
-                printk("part_name = %s    name = %s\n", PartInfo[i].name, name);
-#endif                
-                if (!strncmp(PartInfo[i].name, name, 25)){
-                    mpi->start_sector = part->start_sect;           
-                    mpi->nr_sects = part->nr_sects;           
-                    mpi->part_no = part->partno; 
-                    if (i < PART_NUM){
-                        mpi->part_name = PartInfo[i].name;
-                    } else {
-                        mpi->part_name = no_partition_name;
-                    }
-
-                    disk_part_iter_exit(&piter);
-                    return 0;
-                }
-
-                break;
+        printk("part_name = %s    name = %s\n", part->info->volname, name);
+#endif
+        if (!strncmp(part->info->volname, name, 25)){
+            mpi->start_sector = part->start_sect;
+            mpi->nr_sects = part->nr_sects;
+            mpi->part_no = part->partno;
+            if (part->info){
+                mpi->part_name = part->info->volname;
+            } else {
+                mpi->part_name = no_partition_name;
             }
+
+            disk_part_iter_exit(&piter);
+            return 0;
         }
     }
     disk_part_iter_exit(&piter);
 
     return 1;
 }
-
 
 /* call mmc block layer interface for userspace to do erase operate */
 static int simple_mmc_erase_func(unsigned int start, unsigned int size)
@@ -988,10 +983,10 @@ end:
     
     return 0;
 }
-
+#endif
 static int simple_mmc_erase_partition(unsigned char* name)
 {
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
     struct mbr_part_info mbr_part;
     int l_ret = -1;
 

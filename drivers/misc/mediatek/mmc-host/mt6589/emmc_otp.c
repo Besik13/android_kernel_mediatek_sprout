@@ -29,8 +29,8 @@
 #define DRV_NAME_MISC            "otp"
 #define PROCNAME                 "driver/otp"
 
-#ifndef MTK_EMMC_SUPPORT_OTP
-#define MTK_EMMC_SUPPORT_OTP     
+#ifndef CONFIG_MTK_EMMC_SUPPORT_OTP
+#define CONFIG_MTK_EMMC_SUPPORT_OTP     
 #endif
 
 #define EMMC_OTP_DEBUG           1

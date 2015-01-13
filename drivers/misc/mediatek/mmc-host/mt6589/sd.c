@@ -33,7 +33,7 @@
 
 #include <linux/proc_fs.h>
 #include "drivers/mmc/card/queue.h"
-#include "partition_define.h"
+//#include "../sprout/common/partition_define.h" fix mount block Cheshkin 16.11.2014
 #include <mach/emi_mpu.h>
 #include <mach/memory.h>
 #ifdef CONFIG_MTK_AEE_FEATURE
@@ -48,8 +48,10 @@
 #include <mach/mt_clkmgr.h>
 //#include "mach/mt6575_clkmgr_internal.h"
 #include <mach/eint.h>
+//#include <cust_eint.h>
 #include <cust_eint.h>
 #include <cust_power.h>
+//#include <cust_power.h>
 //#define MSDC_POWER_MC1 MSDC_VMC //Don't define this in local code!!!!!!
 //#define MSDC_POWER_MC2 MSDC_VGP6 //Don't define this in local code!!!!!!
 #endif
@@ -67,7 +69,7 @@
 #define EXT_CSD_PART_CFG                179 /* R/W/E & R/W/E_P */
 #define CAPACITY_2G						(2 * 1024 * 1024 * 1024ULL)
 
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 #define MTK_EMMC_ETT_TO_DRIVER  /* for eMMC off-line apply to driver */
 #endif
 
@@ -1829,7 +1831,7 @@ static u32 msdc_power_tuning(struct msdc_host *host)
     }
 
     // eMMC first 
-    #ifdef MTK_EMMC_SUPPORT
+    #ifdef CONFIG_MTK_EMMC_SUPPORT
     if (mmc_card_mmc(card) && (host->hw->host_function == MSDC_EMMC)) { 
         /* Fixme: */
         return 1;        
@@ -2047,7 +2049,7 @@ int msdc_reinit(struct msdc_host *host)
 		ERR_MSG("Need block this bad SD card from re-initialization");
 
     // eMMC first 
-    #ifdef MTK_EMMC_SUPPORT
+    #ifdef CONFIG_MTK_EMMC_SUPPORT
     if (host->hw->host_function == MSDC_EMMC) { 
         /* Fixme: */
         return -1;        
@@ -2451,7 +2453,7 @@ typedef enum EMMC_CHIP_TAG{
     HYNIX_EMMC_CHIP   = 0x90,
 } EMMC_VENDOR_T;
 #if 0
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 unsigned int sg_emmc_sleep = 0;
 static void msdc_config_emmc_pad(int padEmmc)
 {
@@ -2724,7 +2726,7 @@ static void msdc_pm(pm_message_t state, void *data)
         
         printk(KERN_ERR "msdc%d -> %s Suspend",host->id, evt == PM_EVENT_SUSPEND ? "PM" : "USR");                  	
         if(host->hw->flags & MSDC_SYS_SUSPEND){ /* set for card */
-//#ifdef MTK_EMMC_SUPPORT
+//#ifdef CONFIG_MTK_EMMC_SUPPORT
             //msdc_emmc_sleepawake(host, 0);
 //#endif
 			if(host->hw->host_function == MSDC_EMMC && host->mmc->card && mmc_card_mmc(host->mmc->card))
@@ -2759,7 +2761,7 @@ static void msdc_pm(pm_message_t state, void *data)
         printk(KERN_ERR "msdc%d -> %s Resume",host->id,evt == PM_EVENT_RESUME ? "PM" : "USR");                
 
         if(host->hw->flags & MSDC_SYS_SUSPEND) { /* will not set for WIFI */
-//#ifdef MTK_EMMC_SUPPORT
+//#ifdef CONFIG_MTK_EMMC_SUPPORT
             //msdc_emmc_sleepawake(host, 1);
 //#endif
 		if(host->hw->host_function == MSDC_EMMC && host->mmc->card && mmc_card_mmc(host->mmc->card)){
@@ -2818,7 +2820,7 @@ static u64 msdc_get_user_capacity(struct msdc_host *host)
 	return device_capacity;
 }
 
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 u8 ext_csd[512];
 int offset = 0;
 char partition_access = 0;
@@ -2841,21 +2843,7 @@ static int msdc_get_data(u8* dst,struct mmc_data *data)
 }
 
 /* parse part_info struct, support otp & mtk reserve */
-static struct excel_info* msdc_reserve_part_info(unsigned char* name)
-{
-    int i;
 
-    /* find reserve partition */
-    for (i = 0; i < PART_NUM; i++) {
-        printk("name = %s\n", PartInfo[i].name);  //====================debug
-        if (0 == strcmp(name, PartInfo[i].name)){
-            printk("size = %llu\n", PartInfo[i].size);//=======================debug
-            return &PartInfo[i];
-        }
-    }
-
-    return NULL;
-}
 static u32 msdc_get_other_capacity(void)
 {
     u32 device_other_capacity = 0;
@@ -2890,22 +2878,14 @@ EXPORT_SYMBOL(msdc_get_offset);
 int msdc_get_reserve(void)
 {
     u32 l_offset;
-    struct excel_info* lp_excel_info;
     u32 l_otp_reserve = 0;
     u32 l_mtk_reserve = 0;
 
     l_offset = msdc_get_offset(); //==========check me
 
-    lp_excel_info = msdc_reserve_part_info("bmtpool");
-    if (NULL == lp_excel_info) {
-        printk("can't get otp info from part_info struct\n");
-        return -1;
-    }
 
-    l_mtk_reserve = (unsigned int)(lp_excel_info->start_address & 0xFFFFUL) << 8; /* unit is 512B */
-
-    printk("mtk reserve: start address = %llu\n", lp_excel_info->start_address); //============================debug
-#ifdef MTK_EMMC_SUPPORT_OTP
+    l_mtk_reserve = 0; /* unit is 512B */
+#ifdef CONFIG_MTK_EMMC_SUPPORT_OTP
     lp_excel_info = msdc_reserve_part_info("otp");
     if (NULL == lp_excel_info) {
         printk("can't get otp info from part_info struct\n");
@@ -2914,11 +2894,11 @@ int msdc_get_reserve(void)
 
     l_otp_reserve = (unsigned int)(lp_excel_info->start_address & 0xFFFFUL) << 8; /* unit is 512B */
 
-printk("otp reserve: start address = %llu\n", lp_excel_info->start_address);//========================debug
+    printk("otp reserve: start address = %llu\n", lp_excel_info->start_address);//========================debug
     l_otp_reserve -= l_mtk_reserve;  /* the size info stored with total reserved size */
-#endif 
+#endif
 
-    printk("total reserve: l_otp_reserve = 0x%x blocks, l_mtk_reserve = 0x%x blocks, l_offset = 0x%x blocks\n", 
+    printk("total reserve: l_otp_reserve = 0x%x blocks, l_mtk_reserve = 0x%x blocks, l_offset = 0x%x blocks\n",
              l_otp_reserve, l_mtk_reserve, l_offset);
 
     return (l_offset + l_otp_reserve + l_mtk_reserve);
@@ -2949,7 +2929,7 @@ u64 msdc_get_capacity(int get_emmc_total)
 	for(index = 0;index < HOST_MAX_NUM;++index){
 		if((mtk_msdc_host[index] != NULL) && (mtk_msdc_host[index]->hw->boot)){
 		  	user_size = msdc_get_user_capacity(mtk_msdc_host[index]);
-			#ifdef MTK_EMMC_SUPPORT
+			#ifdef CONFIG_MTK_EMMC_SUPPORT
 			if(get_emmc_total){
 		  		if(mmc_card_mmc(mtk_msdc_host[index]->mmc->card))
 			  		other_size = msdc_get_other_capacity();
@@ -3100,7 +3080,7 @@ static unsigned int msdc_command_start(struct msdc_host   *host,
     /* use polling way */
     sdr_clr_bits(MSDC_INTEN, wints_cmd);             
 	rawarg = cmd->arg;
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
         if(host->hw->host_function == MSDC_EMMC &&
 			host->hw->boot == MSDC_BOOT_EN &&
             (cmd->opcode == MMC_READ_SINGLE_BLOCK 
@@ -3798,7 +3778,7 @@ static int msdc_do_request(struct mmc_host*mmc, struct mmc_request*mrq)
             goto done;         
         }
         
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
         if(host->hw->host_function == MSDC_EMMC &&
 			host->hw->boot == MSDC_BOOT_EN && 
 			cmd->opcode == MMC_SWITCH && 
@@ -3965,7 +3945,7 @@ done:
         host->dma_xfer = 0;    
 
 #if 0   //read MBR
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
         {
             char *ptr = sg_virt(data->sg);
             int i;
@@ -3995,7 +3975,7 @@ done:
                 dma_unmap_sg(mmc_dev(mmc), data->sg, data->sg_len, dir);
             }
         }
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
         if(cmd->opcode == MMC_SEND_EXT_CSD){
             msdc_get_data(ext_csd,data);
         }
@@ -4408,7 +4388,7 @@ done:
     return host->error;
 }
 #if 0
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 //need debug the interface for kernel panic
 static unsigned int msdc_command_start_simple(struct msdc_host   *host, 
                                       struct mmc_command *cmd,
@@ -4770,7 +4750,7 @@ int simple_sd_request(struct mmc_host*mmc, struct mmc_request* mrq)
     }
 
 done:
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
     if(host->hw->host_function == MSDC_EMMC &&
 		host->hw->boot == MSDC_BOOT_EN && 
        (cmd->opcode == MMC_READ_SINGLE_BLOCK || cmd->opcode == MMC_READ_MULTIPLE_BLOCK || cmd->opcode == MMC_WRITE_BLOCK || cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK))
@@ -6871,23 +6851,18 @@ struct gendisk	* mmc_get_disk(struct mmc_card *card)
 	return md->disk;
 }
 
-#if defined(MTK_EMMC_SUPPORT) && defined(CONFIG_PROC_FS)
+#if defined(CONFIG_MTK_EMMC_SUPPORT) && defined(CONFIG_PROC_FS)
 static struct proc_dir_entry *proc_emmc;
 
 static inline int emmc_proc_info(char *buf, struct hd_struct *this)
 {
-	int i = 0;
+    int i = 0;
     char *no_partition_name = "n/a";
 
-    for (i = 0; i < PART_NUM; i++) {
-		if (PartInfo[i].partition_idx != 0 && PartInfo[i].partition_idx == this->partno) {
-			break;
-	    }
-    }			
-	
-	return sprintf(buf, "emmc_p%d: %8.8x %8.8x \"%s\"\n", this->partno,
-		       (unsigned int)this->start_sect,
-		       (unsigned int)this->nr_sects, (i >= PART_NUM ? no_partition_name : PartInfo[i].name));
+    return sprintf(buf, "emmc_p%d: %8.8x %8.8x \"%s\"\n", this->partno,
+               (unsigned int)this->start_sect,
+               (unsigned int)this->nr_sects,
+                this->info ? this->info->volname : no_partition_name);
 }
 
 static int emmc_read_proc (char *page, char **start, off_t off, int count,
@@ -6931,7 +6906,7 @@ done:
 }
 
 
-#endif /* MTK_EMMC_SUPPORT && CONFIG_PROC_FS */
+#endif /* CONFIG_MTK_EMMC_SUPPORT && CONFIG_PROC_FS */
 
 
 
@@ -7536,10 +7511,10 @@ static int __init mt_msdc_init(void)
         return ret;
     }
 
-	#if defined(MTK_EMMC_SUPPORT) && defined(CONFIG_PROC_FS)
+	#if defined(CONFIG_MTK_EMMC_SUPPORT) && defined(CONFIG_PROC_FS)
 	if ((proc_emmc = create_proc_entry( "emmc", 0, NULL )))
 		proc_emmc->read_proc = emmc_read_proc;
-	#endif /* MTK_EMMC_SUPPORT && CONFIG_PROC_FS */
+	#endif /* CONFIG_MTK_EMMC_SUPPORT && CONFIG_PROC_FS */
 
     printk(KERN_INFO DRV_NAME ": MediaTek MSDC Driver\n");
 
@@ -7561,7 +7536,7 @@ module_init(mt_msdc_init);
 module_exit(mt_msdc_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("MediaTek SD/MMC Card Driver");
-#ifdef MTK_EMMC_SUPPORT
+#ifdef CONFIG_MTK_EMMC_SUPPORT
 EXPORT_SYMBOL(ext_csd);
 #endif
 EXPORT_SYMBOL(mtk_msdc_host);

@@ -104,7 +104,7 @@ struct excel_info{
 	unsigned int partition_idx;
 	Region region;
 };
-#ifdef  MTK_EMMC_SUPPORT
+#ifdef  CONFIG_MTK_EMMC_SUPPORT
 /*MBR or EBR struct*/
 #define SLOT_PER_MBR 4
 #define MBR_COUNT 8

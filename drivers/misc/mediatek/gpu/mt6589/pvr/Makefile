@@ -1,6 +1,6 @@
 OPTIM = -Os
 VER:=user
-
+include $(srctree)/drivers/misc/mediatek/Makefile.custom
 ccflags-y := \
 	-I$(srctree)/drivers/misc/mediatek/gpu/mt6589/pvr/include4 \
 	-I$(srctree)/drivers/misc/mediatek/gpu/mt6589/pvr/services4/include \
