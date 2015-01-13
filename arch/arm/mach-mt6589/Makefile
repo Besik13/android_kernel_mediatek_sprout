@@ -7,7 +7,7 @@ include $(srctree)/drivers/misc/mediatek/Makefile.custom
 ccflags-y += -I$(srctree)/
 
 ifeq ($(CONFIG_MTK_INTERNAL), y)
-ifeq ($(MTK_USE_RESERVED_EXT_MEM), y)
+ifeq ($(CONFIG_MTK_USE_RESERVED_EXT_MEM), y)
 KBUILD_CFLAGS += -DMTK_USE_RESERVED_EXT_MEM
 endif
 endif
@@ -53,7 +53,7 @@ obj-y += mt_dsizer.o
 ifneq ($(CONFIG_MTK_CCCI_DEVICES),y)
 ccflags-y  += -D__USING_DUMMY_CCCI_API__
 endif
-ifeq ($(MTK_MD1_SUPPORT),1)
+ifeq ($(CONFIG_MTK_MD1_SUPPORT),1)
 ccflags-y  += -D__USING_MD1_2G__
 endif
 
@@ -62,8 +62,8 @@ ifeq ($(CONFIG_THERMAL),y)
     obj-y += mtk_ts_pmic.o
     obj-y += mtk_ts_pa.o
 
-    ifeq ($(MTK_ENABLE_MD2),yes)
-	    ifeq ($(MTK_MD2_SUPPORT),modem2_3g)
+    ifeq ($(CONFIG_MTK_ENABLE_MD2),y)
+	    ifeq ($(CONFIG_MTK_MD2_SUPPORT),modem2_3g)
 	    	obj-y += mtk_ts_tdpa.o
 	    endif
     endif
@@ -72,10 +72,10 @@ ifeq ($(CONFIG_THERMAL),y)
     else
         ifeq ($(CONFIG_MTK_SMART_BATTERY), y)
             # Always align the Makefile in mediatek/platform/mt6589/kernel/drivers/power/
-            ifeq ($(MTK_NCP1851_SUPPORT),yes)
+            ifeq ($(CONFIG_MTK_NCP1851_SUPPORT),y)
                 obj-y += mtk_ts_battery.o
             else
-                ifeq ($(MTK_BQ24196_SUPPORT),yes) 
+                ifeq ($(CONFIG_MTK_BQ24196_SUPPORT),y) 
                     obj-y += mtk_ts_battery.o
                 else
                     # FAN5405 or PMIC6320 pulse charging
@@ -84,7 +84,7 @@ ifeq ($(CONFIG_THERMAL),y)
             endif
         endif
     endif
-    ifeq ($(MTK_PCB_BATTERY_SENSOR), yes)
+    ifeq ($(CONFIG_MTK_PCB_BATTERY_SENSOR),y)
         obj-y += mtk_ts_battery2.o
     endif
 endif

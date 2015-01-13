@@ -32,6 +32,8 @@ ccflags-y += -I$(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/core
              -I$(MTK_CUSTOM_PATH)/sync \
              -I$(MTK_CUSTOM_PATH)/ssw/inc \
              -I$(MTK_CUSTOM_PATH)/lens/inc \
+             -I$(srctree)/arch/arm/mach-$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/touchpanel/src/ \
+             -I$(srctree)/drivers/input/touchscreen/mediatek/ 
 
 ifneq ($(MTK_PLATFORM),mt6589)
 ccflags-y += -I$(MTK_CUSTOM_PATH)/video 

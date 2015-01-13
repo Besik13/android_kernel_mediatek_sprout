@@ -1,6 +1,6 @@
 
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
-
+ccflags-y += -I$(src)/touchpanel/src/ 
 # Module project related part
 
 ifeq ($(CONFIG_MTK_AP3220),y)
@@ -39,17 +39,11 @@ ifeq ($(CONFIG_MTK_BMC156_MAG),y)
 obj-y	+=  magnetometer/bmc156_mag/
 endif
 
-ifeq ($(CONFIG_TOUCHSCREEN_FT5316_5P),y)
+obj-$(CONFIG_MTK_TOUCHPANEL) += touchpanel/src/
 obj-y	+=  touchpanel/ft5316_5p/
-endif
+#obj-y	+=  touchpanel/GT818B/
+#obj-y	+=  touchpanel/ektf2136/
 
-ifeq ($(CONFIG_TOUCHSCREEN_GT818B),y)
-obj-y	+=  touchpanel/GT818B/
-endif
-
-ifeq ($(CONFIG_TOUCHSCREEN_EKTF2136),y)
-obj-y	+=  touchpanel/ektf2136/
-endif
 
 ifneq ($(CONFIG_ARCH_MTK_PROJECT),)
 ARCH_MTK_PROJECT := $(shell echo $(CONFIG_ARCH_MTK_PROJECT))

@@ -24,7 +24,7 @@ static const struct excel_info PartInfo_Private[PART_NUM]={
 			{"bmtpool",22020096,0xFFFF00a8, EMMC, 0,USER},
  };
 
-#ifdef  MTK_EMMC_SUPPORT
+#ifdef  CONFIG_MTK_EMMC_SUPPORT
 struct MBR_EBR_struct MBR_EBR_px[MBR_COUNT]={
 	{"mbr", {1, 2, 3, 4, }},
 	{"ebr1", {5, 6, 7, }},

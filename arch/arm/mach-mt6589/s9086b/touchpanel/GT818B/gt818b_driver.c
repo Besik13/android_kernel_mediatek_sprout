@@ -117,14 +117,14 @@ int esd_checked_time = 0;
 
 
 
-#ifdef MT6573
+#ifdef CONFIG_ARCH_MT6573
 #define CHR_CON0        (0xF7000000+0x2FA00)
 #endif
-#ifdef MT6575
+#ifdef CONFIG_ARCH_MT6575
 extern kal_bool upmu_is_chr_det(void);
 #endif
 
-#ifdef MT6589
+#ifdef CONFIG_ARCH_MT6589
 extern kal_bool upmu_is_chr_det(void);
 #endif
 
@@ -336,15 +336,15 @@ static int gt818_config_read_proc(char *page, char **start, off_t off, int count
 
 static int gt818_config_write_proc(struct file *file, const char *buffer, unsigned long count, void *data)
 {
-    #ifdef MT6573
+    #ifdef CONFIG_ARCH_MT6573
     u32 temp = *(volatile u32 *)CHR_CON0;
         
     temp &= (1<<13);
     #endif   
-    #ifdef MT6575
+    #ifdef CONFIG_ARCH_MT6575
     kal_bool temp = upmu_is_chr_det();
     #endif 
-    #ifdef MT6589
+    #ifdef CONFIG_ARCH_MT6589
     kal_bool temp = upmu_is_chr_det();
     #endif 
 
@@ -1180,15 +1180,15 @@ static int touch_event_handler(void *unused)
 
 #ifdef TPD_CONDITION_SWITCH
         /* Workaround for common mode noise */
-#ifdef MT6573        
+#ifdef CONFIG_ARCH_MT6573        
         temp = *(volatile u32 *)CHR_CON0;
         temp &= (1<<13);
 #endif
-#ifdef MT6575
+#ifdef CONFIG_ARCH_MT6575
         temp = upmu_is_chr_det();
         //TPD_DMESG("check charge, status:%d \n", upmu_is_chr_det());
 #endif        
-#ifdef MT6589
+#ifdef CONFIG_ARCH_MT6589
         temp = upmu_is_chr_det();
         //TPD_DMESG("check charge, status:%d \n", upmu_is_chr_det());
 #endif        

@@ -473,7 +473,7 @@ static int match_focal_index = -1;
 static struct Focaltech_firmware focal_firmware[5];
 static char BYD_FW[] =
 {
-	#include "ft5316_5p/ctp_firmware/byd_app_d.h"
+	#include "ctp_firmware/byd_app_d.h"
 };
 
 /*static char NANBO_FW[]=
